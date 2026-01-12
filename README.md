@@ -24,10 +24,10 @@
 
 | Team Member | Role(s) | Responsibilities |
 |-------------|---------|-----------------|
-| **Luigi** | Tech Lead - Game Development | Game logic, mechanics, real-time multiplayer implementation, WebSocket integration |
+| **Luigi** | Game Development | Game logic, mechanics, real-time multiplayer implementation, WebSocket integration |
 | **Alessio** | Frontend Developer | UI/UX design, responsive layout, custom design system, PWA features, browser compatibility |
-| **Abdallah** | Backend Developer | Database schema design, Docker containerization, API infrastructure |
-| **Tobia** | Backend Developer | Authentication system, backend logic, API endpoints, game-database integration |
+| **Abdallah** | Backend Developer | Login system, Database schema design, Docker containerization, API infrastructure |
+| **Tobia** | Backend Developer | Login system, Database schema design, Docker containerization, API infrastructure |
 
 ---
 
@@ -145,7 +145,7 @@ The database will include the following main entities:
 
 #### Backend Development (Abdallah & Tobia) - 3 points
 - **Use a backend framework** (Minor - 1 pt)
-  - Implement structured backend with routing, middleware, and state management
+  - Use a backend framework (Express, Fastify, NestJS, Django, etc.).
   
 - **Public API with security** (Major - 2 pts)
   - Secured API key management, rate limiting, documentation, minimum 5 endpoints (GET, POST, PUT, DELETE)
