@@ -181,17 +181,20 @@ The database will include the following main entities:
 ### Abdallah - Backend Development
 *[PLACEHOLDER - To be detailed upon completion of work]*
 - Docker containerization and infrastructure setup
-- Database schema design and management
+- Backend logic for game integration and login with framework
+- Database implementation
 - API infrastructure and endpoint creation
-- Security measures and rate limiting implementation
+- API Documentation
+- Authentication and login/registration system implementation
 
 ### Tobia - Backend Development
 *[PLACEHOLDER - To be detailed upon completion of work]*
+- Docker containerization and infrastructure setup
+- Backend logic for game integration and login with framework
+- Database implementation
+- API infrastructure and endpoint creation
+- API Documentation
 - Authentication and login/registration system implementation
-- Backend logic for game integration
-- Database operations and user data management
-- API endpoint implementation and documentation
-
 ---
 
 ## Resources
