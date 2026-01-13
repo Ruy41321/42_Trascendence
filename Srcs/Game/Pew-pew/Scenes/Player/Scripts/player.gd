@@ -7,6 +7,9 @@ class_name Player
 ## Handles WASD movement with directional speed multipliers, mouse aiming,
 ## and basic shooting mechanics. Health and respawn system included.
 
+var player_id: int = 0  # Unique player identifier
+var respawn_location: Vector2 = Vector2.ZERO  # To be set on respawn
+
 # Movement parameters
 @export var speed: float = 200.0
 @export var forward_speed_mult: float = 1.0
@@ -22,16 +25,22 @@ var current_hp: int
 var is_alive: bool = true
 
 # Node references
-@onready var animation_player = $AnimationPlayer  # Optional: if you have animations
+@onready var skin_1: Node2D = $Skin1
+@onready var skin_2: Node2D = $Skin2
+@onready var skin_3: Node2D = $Skin3
+@onready var skin_4: Node2D = $Skin4
+
+var shader_material: ShaderMaterial
 
 
 func _ready() -> void:
-	current_hp = max_hp
+	shader_material = $Skin1/Back.material as ShaderMaterial
 	LogManager.info("Player initialized with %d HP" % current_hp, "Player")
-
+	set_skin()
+	respawn()
 
 func _physics_process(delta: float) -> void:
-	if not is_alive:
+	if not is_alive or ClientManager.my_peer_id != player_id:
 		return
 	
 	# Rotation towards mouse
@@ -129,10 +138,16 @@ func die() -> void:
 	# - Disable collisions
 	# - Start death animation
 	
-	visible = false
-	set_collision_layer_value(0, false)
-	set_collision_mask_value(0, false)
+	set_collision_layer_value(1, false)
+	set_collision_mask_value(1, false)
 	
+	var shader_progress = 0.0
+	while (shader_progress < 1.0):
+		shader_progress += 0.01
+		shader_material.set_shader_parameter("progress", shader_progress)
+		await get_tree().create_timer(0.01).timeout
+
+	visible = false
 	# Respawn after delay
 	await get_tree().create_timer(respawn_delay).timeout
 	respawn()
@@ -149,8 +164,24 @@ func respawn() -> void:
 	
 	# Show player again
 	visible = true
-	set_collision_layer_value(0, true)
-	set_collision_mask_value(0, true)
+	set_collision_mask_value(1, true)
 	
-	# Return to initial position (if needed)
-	# global_position = Vector2(640, 360)  # Adjust to your coordinates
+	# Return to initial position
+	global_position = respawn_location
+
+	var shader_progress = 0.7
+	while (shader_progress > 0):
+		shader_progress -= 0.01
+		shader_material.set_shader_parameter("progress", shader_progress)
+		await get_tree().create_timer(0.01).timeout
+	
+	set_collision_layer_value(1, true)
+
+
+func set_skin() -> void:
+	# Placeholder for setting player skin based on player_id
+	# This could involve changing sprites, colors, etc.
+	LogManager.info("Setting skin for Player ID: %d" % player_id, "Player")
+	var skins: Array[Node2D] = [skin_1, skin_2, skin_3, skin_4]
+	for i in skins.size():
+		skins[i].visible = (i == player_id % skins.size())
