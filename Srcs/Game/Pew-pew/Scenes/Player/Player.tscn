@@ -8,7 +8,9 @@
 radius = 140.0
 
 [node name="Player" type="CharacterBody2D"]
+motion_mode = 1
 script = ExtResource("1_s0eop")
+metadata/_custom_type_script = "uid://d14to2t4fj1io"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 visible = false
