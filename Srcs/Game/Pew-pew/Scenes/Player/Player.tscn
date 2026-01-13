@@ -1,0 +1,149 @@
+[gd_scene load_steps=5 format=3 uid="uid://dj1gjh3t8mw6w"]
+
+[ext_resource type="Script" uid="uid://d14to2t4fj1io" path="res://Scenes/Player/Scripts/player.gd" id="1_s0eop"]
+[ext_resource type="Texture2D" uid="uid://bxy6lfxpmtxrr" path="res://Assets/Content/Skins.png" id="2_h54ih"]
+[ext_resource type="Texture2D" uid="uid://bjpu3afouocti" path="res://Assets/Content/Weapons.png" id="3_ude3g"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_jmcll"]
+radius = 140.0
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_s0eop")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+position = Vector2(0, 111.595)
+shape = SubResource("CircleShape2D_jmcll")
+
+[node name="Skin1" type="Node2D" parent="."]
+visible = false
+
+[node name="Back" type="Sprite2D" parent="Skin1"]
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(51, 1210, 197, 132)
+
+[node name="LeftArm" type="Sprite2D" parent="Skin1"]
+position = Vector2(-78, 141)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(501, 1220, 103, 199)
+
+[node name="RightArm" type="Sprite2D" parent="Skin1"]
+position = Vector2(56, 154)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(681, 1203, 132, 243)
+
+[node name="Weapon" type="Sprite2D" parent="Skin1"]
+position = Vector2(-21, 219)
+texture = ExtResource("3_ude3g")
+region_enabled = true
+region_rect = Rect2(1113, 459, 68, 336)
+
+[node name="Head" type="Sprite2D" parent="Skin1"]
+position = Vector2(0, 100)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(1186, 1203, 164, 164)
+
+[node name="Skin2" type="Node2D" parent="."]
+
+[node name="Back" type="Sprite2D" parent="Skin2"]
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(1967, 1206, 205, 140)
+
+[node name="LeftArm" type="Sprite2D" parent="Skin2"]
+position = Vector2(-54, 143)
+texture = ExtResource("2_h54ih")
+flip_h = true
+region_enabled = true
+region_rect = Rect2(2601, 1203, 132, 243)
+
+[node name="RightArm" type="Sprite2D" parent="Skin2"]
+position = Vector2(54, 144)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(2601, 1203, 132, 243)
+
+[node name="Weapon" type="Sprite2D" parent="Skin2"]
+position = Vector2(0, 260)
+rotation = 3.1415927
+texture = ExtResource("3_ude3g")
+region_enabled = true
+region_rect = Rect2(130, 576, 60, 134)
+
+[node name="Head" type="Sprite2D" parent="Skin2"]
+position = Vector2(0, 100)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(2187, 1194, 165, 165)
+
+[node name="Skin3" type="Node2D" parent="."]
+visible = false
+
+[node name="Back" type="Sprite2D" parent="Skin3"]
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(2971, 1210, 197, 132)
+
+[node name="LeftArm" type="Sprite2D" parent="Skin3"]
+position = Vector2(-78, 141)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(3421, 1220, 103, 199)
+
+[node name="RightArm" type="Sprite2D" parent="Skin3"]
+position = Vector2(56, 154)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(3601, 1203, 132, 243)
+
+[node name="Weapon" type="Sprite2D" parent="Skin3"]
+position = Vector2(-21, 327.16)
+texture = ExtResource("3_ude3g")
+region_enabled = true
+region_rect = Rect2(1478, 445, 71, 365)
+
+[node name="Head" type="Sprite2D" parent="Skin3"]
+position = Vector2(0, 100)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(3187, 1194, 165, 165)
+
+[node name="Skin4" type="Node2D" parent="."]
+visible = false
+
+[node name="Back" type="Sprite2D" parent="Skin4"]
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(969, 1219, 198, 132)
+
+[node name="LeftArm" type="Sprite2D" parent="Skin4"]
+position = Vector2(-54, 143)
+texture = ExtResource("2_h54ih")
+flip_h = true
+region_enabled = true
+region_rect = Rect2(1599, 1212, 132, 242)
+
+[node name="RightArm" type="Sprite2D" parent="Skin4"]
+position = Vector2(54, 144)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(1599, 1212, 132, 242)
+
+[node name="Weapon" type="Sprite2D" parent="Skin4"]
+position = Vector2(0, 260)
+texture = ExtResource("3_ude3g")
+region_enabled = true
+region_rect = Rect2(768, 588, 58, 117)
+
+[node name="Head" type="Sprite2D" parent="Skin4"]
+position = Vector2(0, 100)
+texture = ExtResource("2_h54ih")
+region_enabled = true
+region_rect = Rect2(1186, 1203, 164, 164)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.16, 0.16)
