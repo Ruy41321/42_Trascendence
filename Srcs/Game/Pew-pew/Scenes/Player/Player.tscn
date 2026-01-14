@@ -15,7 +15,6 @@ script = ExtResource("1_s0eop")
 metadata/_custom_type_script = "uid://d14to2t4fj1io"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-visible = false
 position = Vector2(0, 111.595)
 shape = SubResource("CircleShape2D_jmcll")
 
@@ -30,7 +29,7 @@ region_rect = Rect2(51, 1210, 197, 132)
 
 [node name="LeftArm" type="Sprite2D" parent="Skin1"]
 material = ExtResource("2_ude3g")
-position = Vector2(-78, 141)
+position = Vector2(-59, 131)
 texture = ExtResource("2_h54ih")
 region_enabled = true
 region_rect = Rect2(501, 1220, 103, 199)
@@ -44,7 +43,7 @@ region_rect = Rect2(681, 1203, 132, 243)
 
 [node name="Weapon" type="Sprite2D" parent="Skin1"]
 material = ExtResource("2_ude3g")
-position = Vector2(-21, 219)
+position = Vector2(-3, 219)
 texture = ExtResource("3_ude3g")
 region_enabled = true
 region_rect = Rect2(1113, 459, 68, 336)
@@ -57,6 +56,7 @@ region_enabled = true
 region_rect = Rect2(1186, 1203, 164, 164)
 
 [node name="Skin2" type="Node2D" parent="."]
+visible = false
 
 [node name="Back" type="Sprite2D" parent="Skin2"]
 material = ExtResource("2_ude3g")
@@ -95,7 +95,6 @@ region_enabled = true
 region_rect = Rect2(2187, 1194, 165, 165)
 
 [node name="Skin3" type="Node2D" parent="."]
-visible = false
 
 [node name="Back" type="Sprite2D" parent="Skin3"]
 material = ExtResource("2_ude3g")
@@ -105,7 +104,7 @@ region_rect = Rect2(2971, 1210, 197, 132)
 
 [node name="LeftArm" type="Sprite2D" parent="Skin3"]
 material = ExtResource("2_ude3g")
-position = Vector2(-78, 141)
+position = Vector2(-59, 131)
 texture = ExtResource("2_h54ih")
 region_enabled = true
 region_rect = Rect2(3421, 1220, 103, 199)
@@ -119,7 +118,7 @@ region_rect = Rect2(3601, 1203, 132, 243)
 
 [node name="Weapon" type="Sprite2D" parent="Skin3"]
 material = ExtResource("2_ude3g")
-position = Vector2(-21, 327.16)
+position = Vector2(-1, 327.16)
 texture = ExtResource("3_ude3g")
 region_enabled = true
 region_rect = Rect2(1478, 445, 71, 365)
@@ -172,3 +171,11 @@ region_rect = Rect2(1186, 1203, 164, 164)
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(0.2, 0.2)
 script = ExtResource("5_jmcll")
+
+[node name="LaserSight" type="Line2D" parent="."]
+visible = false
+width = 5.0
+default_color = Color(1, 0, 0, 0.5)
+
+[node name="LaserRayCast" type="RayCast2D" parent="."]
+target_position = Vector2(0, 5000)

@@ -20,11 +20,24 @@ var respawn_location: Vector2 = Vector2.ZERO  # To be set on respawn
 @export var max_hp: int = 1
 @export var respawn_delay: float = 2.0
 
+# Projectile parameters
+@export var projectile_scene: PackedScene = Constants.projectile_scene
+@export var fire_rate: float = 0.2  # Seconds between shots
+@export var projectile_spawn_offset: float = 300.0  # Distance from player center to spawn projectile
+var last_fire_time: float = 0.0
+
+# Laser sight parameters
+@export var laser_sight_max_length: float = 5000.0
+
 # State variables
 var current_hp: int
 var is_alive: bool = true
+var kill_count: int = 0
 
 # Node references
+@onready var laser_sight: Line2D = $LaserSight
+@onready var laser_raycast: RayCast2D = $LaserRayCast
+
 @onready var skin_1: Node2D = $Skin1
 @onready var skin_2: Node2D = $Skin2
 @onready var skin_3: Node2D = $Skin3
@@ -33,18 +46,22 @@ var is_alive: bool = true
 var shader_material: ShaderMaterial
 
 
-func _ready() -> void:
-	shader_material = $Skin1/Back.material as ShaderMaterial
+func _ready() -> void:	
 	LogManager.info("Player initialized with %d HP" % current_hp, "Player")
 	set_skin()
 	respawn()
 
 func _physics_process(delta: float) -> void:
 	if not is_alive or ClientManager.my_peer_id != player_id:
+		if laser_sight:
+			laser_sight.visible = false
 		return
-	
+
 	# Rotation towards mouse
 	look_at_mouse()
+	
+	# Update laser sight
+	update_laser_sight()
 	
 	# Handle input movement
 	handle_movement(delta)
@@ -102,19 +119,63 @@ func look_at_mouse() -> void:
 	rotation -= PI / 2  # Compensate for 90 degree offset
 
 
+## Updates the laser sight line
+func update_laser_sight() -> void:
+	if not laser_sight or not laser_raycast:
+		return
+	
+	# Raycast is already rotated with the player, so use local coordinates
+	# Point straight up in local space (which is where the player is looking after compensation)
+	laser_raycast.target_position = Vector2(0, laser_sight_max_length)
+	laser_raycast.force_raycast_update()
+	
+	# Start point of laser (offset from player center to simulate weapon position)
+	var fire_direction: Vector2 = Vector2(0, 1)  # Local up direction
+	var start_point: Vector2 = fire_direction * projectile_spawn_offset
+	
+	# End point of laser
+	var end_point: Vector2
+	if laser_raycast.is_colliding():
+		# Stop at collision point (convert to local coordinates)
+		end_point = laser_raycast.to_local(laser_raycast.get_collision_point())
+	else:
+		# Extend to max length
+		end_point = fire_direction * laser_sight_max_length
+	
+	# Update Line2D points
+	laser_sight.points = [start_point, end_point]
+	laser_sight.visible = true
+
+
 ## Handles shooting input
 func handle_shooting() -> void:
 	if Input.is_action_just_pressed("left_click"):
-		shoot()
+		var current_time = Time.get_ticks_msec() / 1000.0
+		if current_time - last_fire_time >= fire_rate:
+			shoot()
+			last_fire_time = current_time
 
 
 ## Executes shooting action
 func shoot() -> void:
-	LogManager.debug("Player fired weapon", "Player")
-	# TODO: Implement shooting logic
-	# - Create projectile
-	# - Add sound/visual effects
-
+	if not projectile_scene:
+		LogManager.warning("Projectile scene not assigned", "Player")
+		return
+	
+	#LogManager.debug("Player fired weapon", "Player")
+	
+	# Calculate firing direction (where the player is looking)
+	var fire_direction: Vector2 = Vector2.from_angle(rotation + PI / 2)
+	
+	# Calculate spawn position with offset from player center
+	var spawn_position: Vector2 = global_position + (fire_direction * projectile_spawn_offset)
+	
+	# Create projectile instance
+	var projectile: Projectile = projectile_scene.instantiate()
+	# Initialize projectile with spawn position, direction, player ID, and killer reference
+	projectile.initialize(spawn_position, fire_direction, player_id, self)
+	get_parent().add_child(projectile)
+	
 
 ## Receives damage and updates health
 func take_hit(damage: int = 1) -> void:
@@ -126,6 +187,12 @@ func take_hit(damage: int = 1) -> void:
 	
 	if current_hp <= 0:
 		die()
+
+
+## Awards a kill to this player
+func add_kill() -> void:
+	kill_count += 1
+	LogManager.info("Player %d got a kill! Total kills: %d" % [player_id, kill_count], "Player")
 
 
 ## Handles player death
@@ -179,9 +246,13 @@ func respawn() -> void:
 
 
 func set_skin() -> void:
-	# Placeholder for setting player skin based on player_id
-	# This could involve changing sprites, colors, etc.
 	LogManager.info("Setting skin for Player ID: %d" % player_id, "Player")
+	# Create a unique copy of the shader material for this player
+	shader_material = ($Skin1/Back.material as ShaderMaterial).duplicate()
+
 	var skins: Array[Node2D] = [skin_1, skin_2, skin_3, skin_4]
 	for i in skins.size():
 		skins[i].visible = (i == player_id % skins.size())
+		for part in skins[i].get_children():
+			if part is Sprite2D:
+				part.set_material(shader_material)

@@ -17,6 +17,7 @@ config/icon="uid://bjuste8x6qrn2"
 
 [autoload]
 
+Constants="*res://Autoload/Constants.gd"
 LogManager="*res://Autoload/LogManager.gd"
 ClientManager="*res://Autoload/ClientManager.gd"
 
