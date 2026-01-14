@@ -150,6 +150,12 @@ func update_laser_sight() -> void:
 ## Handles shooting input
 func handle_shooting() -> void:
 	if Input.is_action_just_pressed("left_click"):
+		# Check if menu is open - don't shoot if menu is visible
+		var level_manager: LevelManager = get_parent() as LevelManager
+		var game_hud = level_manager.game_hud if level_manager else null
+		if game_hud and game_hud.is_menu_open():
+			return
+		
 		var current_time = Time.get_ticks_msec() / 1000.0
 		if current_time - last_fire_time >= fire_rate:
 			shoot()
@@ -193,6 +199,11 @@ func take_hit(damage: int = 1) -> void:
 func add_kill() -> void:
 	kill_count += 1
 	LogManager.info("Player %d got a kill! Total kills: %d" % [player_id, kill_count], "Player")
+	
+	# Notify level manager
+	var level_manager: LevelManager = get_parent() as LevelManager
+	if level_manager:
+		level_manager.on_player_kill(self)
 
 
 ## Handles player death

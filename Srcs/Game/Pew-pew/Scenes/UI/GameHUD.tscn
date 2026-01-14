@@ -1,0 +1,102 @@
+[gd_scene load_steps=2 format=3 uid="uid://cgpv8xtmx4qwo"]
+
+[ext_resource type="Script" uid="uid://3owdmv48y1xd" path="res://Scenes/UI/Scripts/game_hud.gd" id="1_hud"]
+
+[node name="GameHUD" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_hud")
+
+[node name="ScoreboardBackground" type="ColorRect" parent="."]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 210.0
+offset_bottom = 210.0
+color = Color(0, 0, 0, 0.6)
+
+[node name="TopLeftPanel" type="VBoxContainer" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 204.0
+offset_bottom = 203.0
+
+[node name="TimerLabel" type="Label" parent="TopLeftPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Time: 2:00"
+
+[node name="Separator" type="HSeparator" parent="TopLeftPanel"]
+layout_mode = 2
+
+[node name="KillListTitle" type="Label" parent="TopLeftPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Scoreboard"
+
+[node name="KillList" type="VBoxContainer" parent="TopLeftPanel"]
+layout_mode = 2
+
+[node name="PauseMenu" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DarkOverlay" type="ColorRect" parent="PauseMenu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="CenterPanel" type="VBoxContainer" parent="PauseMenu"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="PauseMenu/CenterPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+horizontal_alignment = 1
+
+[node name="WinnerLabel" type="Label" parent="PauseMenu/CenterPanel"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Player X Won!"
+horizontal_alignment = 1
+
+[node name="ButtonsContainer" type="VBoxContainer" parent="PauseMenu/CenterPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ContinueButton" type="Button" parent="PauseMenu/CenterPanel/ButtonsContainer"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Continue"
+
+[node name="RematchButton" type="Button" parent="PauseMenu/CenterPanel/ButtonsContainer"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Rematch"
+
+[node name="ExitButton" type="Button" parent="PauseMenu/CenterPanel/ButtonsContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Exit / Leave"
