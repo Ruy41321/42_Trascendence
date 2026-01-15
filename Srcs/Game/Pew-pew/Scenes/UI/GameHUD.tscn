@@ -10,14 +10,14 @@ script = ExtResource("1_hud")
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 210.0
-offset_bottom = 210.0
+offset_bottom = 253.0
 color = Color(0, 0, 0, 0.6)
 
 [node name="TopLeftPanel" type="VBoxContainer" parent="."]
 offset_left = 20.0
 offset_top = 20.0
 offset_right = 204.0
-offset_bottom = 203.0
+offset_bottom = 248.0
 
 [node name="TimerLabel" type="Label" parent="TopLeftPanel"]
 layout_mode = 2
@@ -99,4 +99,35 @@ text = "Rematch"
 [node name="ExitButton" type="Button" parent="PauseMenu/CenterPanel/ButtonsContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "Exit / Leave"
+text = "Leave"
+
+[node name="KillFeedLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -960.0
+offset_top = 50.0
+offset_right = 960.0
+offset_bottom = 100.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 32
+text = "Kill Feed Message"
+horizontal_alignment = 1
+
+[node name="RespawnCountdownLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -960.0
+offset_top = 100.0
+offset_right = 960.0
+offset_bottom = 150.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 28
+text = "Respawn: 2.0"
+horizontal_alignment = 1

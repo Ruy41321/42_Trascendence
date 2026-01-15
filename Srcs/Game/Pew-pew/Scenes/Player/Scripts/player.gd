@@ -1,38 +1,19 @@
-extends CharacterBody2D
+extends Character
 
 class_name Player
 
 ## Player controller for local player movement, rotation, and shooting
 ##
 ## Handles WASD movement with directional speed multipliers, mouse aiming,
-## and basic shooting mechanics. Health and respawn system included.
+## and basic shooting mechanics. Inherits common behavior from Character.
 
-var player_id: int = 0  # Unique player identifier
-var respawn_location: Vector2 = Vector2.ZERO  # To be set on respawn
-
-# Movement parameters
-@export var speed: float = 200.0
+# Movement parameters (specific to player)
 @export var forward_speed_mult: float = 1.0
 @export var sideways_speed_mult: float = 0.8
 @export var backward_speed_mult: float = 0.6
 
-# Health parameters
-@export var max_hp: int = 1
-@export var respawn_delay: float = 2.0
-
-# Projectile parameters
-@export var projectile_scene: PackedScene = Constants.projectile_scene
-@export var fire_rate: float = 0.2  # Seconds between shots
-@export var projectile_spawn_offset: float = 300.0  # Distance from player center to spawn projectile
-var last_fire_time: float = 0.0
-
 # Laser sight parameters
 @export var laser_sight_max_length: float = 5000.0
-
-# State variables
-var current_hp: int
-var is_alive: bool = true
-var kill_count: int = 0
 
 # Node references
 @onready var laser_sight: Line2D = $LaserSight
@@ -43,10 +24,8 @@ var kill_count: int = 0
 @onready var skin_3: Node2D = $Skin3
 @onready var skin_4: Node2D = $Skin4
 
-var shader_material: ShaderMaterial
 
-
-func _ready() -> void:	
+func setup_character() -> void:
 	LogManager.info("Player initialized with %d HP" % current_hp, "Player")
 	set_skin()
 	respawn()
@@ -158,103 +137,17 @@ func handle_shooting() -> void:
 		
 		var current_time = Time.get_ticks_msec() / 1000.0
 		if current_time - last_fire_time >= fire_rate:
-			shoot()
+			shoot_player()
 			last_fire_time = current_time
 
 
-## Executes shooting action
-func shoot() -> void:
-	if not projectile_scene:
-		LogManager.warning("Projectile scene not assigned", "Player")
-		return
-	
-	#LogManager.debug("Player fired weapon", "Player")
-	
+## Executes shooting action (Player-specific override)
+func shoot_player() -> void:
 	# Calculate firing direction (where the player is looking)
 	var fire_direction: Vector2 = Vector2.from_angle(rotation + PI / 2)
 	
-	# Calculate spawn position with offset from player center
-	var spawn_position: Vector2 = global_position + (fire_direction * projectile_spawn_offset)
-	
-	# Create projectile instance
-	var projectile: Projectile = projectile_scene.instantiate()
-	# Initialize projectile with spawn position, direction, player ID, and killer reference
-	projectile.initialize(spawn_position, fire_direction, player_id, self)
-	get_parent().add_child(projectile)
-	
-
-## Receives damage and updates health
-func take_hit(damage: int = 1) -> void:
-	if not is_alive:
-		return
-	
-	current_hp -= damage
-	LogManager.info("Player took hit! Remaining HP: %d" % current_hp, "Player")
-	
-	if current_hp <= 0:
-		die()
-
-
-## Awards a kill to this player
-func add_kill() -> void:
-	kill_count += 1
-	LogManager.info("Player %d got a kill! Total kills: %d" % [player_id, kill_count], "Player")
-	
-	# Notify level manager
-	var level_manager: LevelManager = get_parent() as LevelManager
-	if level_manager:
-		level_manager.on_player_kill(self)
-
-
-## Handles player death
-func die() -> void:
-	is_alive = false
-	LogManager.info("Player died", "Player")
-	
-	# Death effects
-	# - Hide the player
-	# - Disable collisions
-	# - Start death animation
-	
-	set_collision_layer_value(1, false)
-	set_collision_mask_value(1, false)
-	
-	var shader_progress = 0.0
-	while (shader_progress < 1.0):
-		shader_progress += 0.01
-		shader_material.set_shader_parameter("progress", shader_progress)
-		await get_tree().create_timer(0.01).timeout
-
-	visible = false
-	# Respawn after delay
-	await get_tree().create_timer(respawn_delay).timeout
-	respawn()
-
-
-## Respawns the player
-func respawn() -> void:
-	LogManager.info("Player respawned", "Player")
-	
-	# Reset variables
-	current_hp = max_hp
-	is_alive = true
-	velocity = Vector2.ZERO
-	
-	# Show player again
-	visible = true
-	set_collision_mask_value(1, true)
-	
-	# Return to initial position
-	global_position = respawn_location
-
-	var shader_progress = 0.7
-	while (shader_progress > 0):
-		shader_progress -= 0.01
-		shader_material.set_shader_parameter("progress", shader_progress)
-		await get_tree().create_timer(0.01).timeout
-	
-	set_collision_layer_value(1, true)
-
+	# Call base class shoot method
+	shoot(fire_direction)
 
 func set_skin() -> void:
 	LogManager.info("Setting skin for Player ID: %d" % player_id, "Player")

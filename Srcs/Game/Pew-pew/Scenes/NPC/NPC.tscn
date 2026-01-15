@@ -1,0 +1,57 @@
+[gd_scene load_steps=6 format=3 uid="uid://brgx8xtmx4npc"]
+
+[ext_resource type="Script" uid="uid://di6avbxeiggf" path="res://Scenes/NPC/Scripts/npc.gd" id="1_npc"]
+[ext_resource type="Texture2D" uid="uid://bxy6lfxpmtxrr" path="res://Assets/Content/Skins.png" id="2_npc"]
+[ext_resource type="Material" uid="uid://cgovk4m7bdp2v" path="res://Assets/Shader/Spawn.tres" id="3_npc"]
+[ext_resource type="Texture2D" uid="uid://bjpu3afouocti" path="res://Assets/Content/Weapons.png" id="4_37ake"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_npc"]
+radius = 140.0
+
+[node name="NPC" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_npc")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+position = Vector2(0, 111.595)
+shape = SubResource("CircleShape2D_npc")
+
+[node name="Skin" type="Node2D" parent="."]
+
+[node name="Back" type="Sprite2D" parent="Skin"]
+material = ExtResource("3_npc")
+texture = ExtResource("2_npc")
+region_enabled = true
+region_rect = Rect2(971, 146, 197, 132)
+
+[node name="LeftArm" type="Sprite2D" parent="Skin"]
+material = ExtResource("3_npc")
+position = Vector2(-78, 141)
+texture = ExtResource("2_npc")
+region_enabled = true
+region_rect = Rect2(1421, 156, 103, 198)
+
+[node name="RightArm" type="Sprite2D" parent="Skin"]
+material = ExtResource("3_npc")
+position = Vector2(56, 154)
+texture = ExtResource("2_npc")
+region_enabled = true
+region_rect = Rect2(683, 496, 132, 242)
+
+[node name="Weapon" type="Sprite2D" parent="Skin"]
+material = ExtResource("3_npc")
+position = Vector2(-21, 219)
+texture = ExtResource("4_37ake")
+region_enabled = true
+region_rect = Rect2(1113, 459, 68, 336)
+
+[node name="Head" type="Sprite2D" parent="Skin"]
+material = ExtResource("3_npc")
+position = Vector2(0, 100)
+texture = ExtResource("2_npc")
+region_enabled = true
+region_rect = Rect2(1187, 130, 165, 164)
+
+[node name="DetectionRayCast" type="RayCast2D" parent="."]
+target_position = Vector2(0, 5000)

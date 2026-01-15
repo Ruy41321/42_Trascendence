@@ -13,11 +13,17 @@ extends CanvasLayer
 @onready var continue_button: Button = $PauseMenu/CenterPanel/ButtonsContainer/ContinueButton
 @onready var rematch_button: Button = $PauseMenu/CenterPanel/ButtonsContainer/RematchButton
 @onready var exit_button: Button = $PauseMenu/CenterPanel/ButtonsContainer/ExitButton
+@onready var kill_feed_label: Label = %KillFeedLabel
+@onready var respawn_countdown_label: Label = %RespawnCountdownLabel
 
 # State
 var is_paused: bool = false
 var game_ended: bool = false
 var player_labels: Dictionary = {}  # player_id: Label
+
+# Kill feed and respawn countdown timers
+var kill_feed_timer: float = 0.0
+var respawn_countdown_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -36,26 +42,42 @@ func _process(_delta: float) -> void:
 	# Handle pause input
 	if Input.is_action_just_pressed("ui_cancel") and not game_ended:
 		toggle_pause()
+	
+	# Update kill feed timer
+	if kill_feed_timer > 0:
+		kill_feed_timer -= _delta
+		if kill_feed_timer <= 0:
+			kill_feed_label.visible = false
+	
+	# Update respawn countdown timer
+	if respawn_countdown_timer > 0:
+		respawn_countdown_timer -= _delta
+		if respawn_countdown_timer > 0:
+			respawn_countdown_label.text = "Respawn: %.1f" % respawn_countdown_timer
+		else:
+			respawn_countdown_label.visible = false
 
 
 ## Updates the timer display
 func update_timer(time_remaining: float) -> void:
-	var minutes: int = int(time_remaining) / 60
+	var minutes: int = int(time_remaining / 60)
 	var seconds: int = int(time_remaining) % 60
 	timer_label.text = "Time: %d:%02d" % [minutes, seconds]
 
 
 ## Updates the kill count for a specific player
 func update_player_kills(player_id: int, player_name: String, kills: int) -> void:
+	var label: Label
 	if not player_labels.has(player_id):
 		# Create new label for this player
-		var label: Label = Label.new()
+		label = Label.new()
 		label.add_theme_font_size_override("font_size", 20)
 		kill_list.add_child(label)
 		player_labels[player_id] = label
+	else:
+		label = player_labels[player_id]
 	
 	# Update label text
-	var label: Label = player_labels[player_id]
 	label.text = "%s: %d kills" % [player_name, kills]
 
 
@@ -107,9 +129,30 @@ func _on_rematch_pressed() -> void:
 func _on_exit_pressed() -> void:
 	LogManager.info("Exit button pressed", "GameHUD")
 	# TODO: Implement proper exit logic (return to lobby, disconnect, etc.)
-	get_tree().quit()
+	GameManager.go_to_main_menu()
 
 
 ## Check if the menu is currently open
 func is_menu_open() -> bool:
 	return pause_menu.visible
+
+
+## Show kill notification when player eliminates someone
+func show_kill_notification(victim_name: String) -> void:
+	kill_feed_label.text = "Hai eliminato %s" % victim_name
+	kill_feed_label.visible = true
+	kill_feed_timer = 3.0  # Show for 3 seconds
+	LogManager.info("Kill notification: eliminated %s" % victim_name, "GameHUD")
+
+
+## Show death notification when player is eliminated
+func show_death_notification(killer_name: String, respawn_time: float) -> void:
+	kill_feed_label.text = "Sei stato eliminato da %s" % killer_name
+	kill_feed_label.visible = true
+	kill_feed_timer = respawn_time + 1 # Show kill feed for duration of respawn
+	
+	# Start respawn countdown - synchronized with actual respawn delay
+	respawn_countdown_timer = respawn_time + 1
+	respawn_countdown_label.visible = true
+	respawn_countdown_label.text = "Respawn: %.1f" % respawn_time
+	LogManager.info("Death notification: killed by %s, respawning in %.1f seconds" % [killer_name, respawn_time], "GameHUD")

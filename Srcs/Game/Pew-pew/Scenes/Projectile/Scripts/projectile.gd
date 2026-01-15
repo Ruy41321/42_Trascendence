@@ -12,8 +12,7 @@ class_name Projectile
 
 # State variables
 var direction: Vector2 = Vector2.RIGHT
-var fired_by_player_id: int = -1
-var killer_player: Player = null
+var shooter: Character = null
 var lifetime: float = 0.0
 
 # Node references
@@ -35,28 +34,37 @@ func _physics_process(delta: float) -> void:
 		var collider = collision.get_collider()
 		
 		# Check if collided with a Player
-		if collider is Player:
-			var player: Player = collider as Player
-			# Don't damage the player who fired this projectile
-			if player.player_id != fired_by_player_id:
-				player.take_hit()
-				LogManager.info(
-					"Projectile hit Player %d, fired by Player %d" % [player.player_id, fired_by_player_id],
-					"Projectile"
-				)
-				
-				# Check if the hit killed the player
-				if player.current_hp <= 0 and killer_player:
-					killer_player.add_kill()
-				
-				_destroy_projectile()
-				return
-		else:
+		if collider is not Character or not shooter.is_alive:
 			# Collided with a wall (TileMapLayer or other physics body)
 			#LogManager.debug("Projectile hit wall/obstacle", "Projectile")
 			_destroy_projectile()
 			return
-	
+
+		var character: Character = collider as Character
+		# Don't damage the player who fired this projectile or if shooter is dead
+		if character.player_id == shooter.player_id:
+			return
+		
+		# Store victim info before applying damage
+		var was_alive = character.is_alive
+		var victim_name = character.character_name
+		
+		# SET KILLER BEFORE take_hit() so die() can access it
+		character.last_killer = shooter
+		
+		character.take_hit()
+		LogManager.info(
+			"Projectile hit Character %d, fired by Player %d" % [character.player_id, shooter.player_id],
+			"Projectile"
+		)
+		
+		# Check if the hit killed the player
+		if was_alive and character.current_hp <= 0 and shooter:
+			shooter.add_kill(victim_name)
+		
+		_destroy_projectile()
+		return
+
 	# Update lifetime and remove if too old
 	lifetime += delta
 	if lifetime > max_lifetime:
@@ -64,11 +72,10 @@ func _physics_process(delta: float) -> void:
 
 
 ## Initialize projectile with firing direction
-func initialize(spawn_position: Vector2, fire_direction: Vector2, player_id: int, killer: Player) -> void:
+func initialize(spawn_position: Vector2, fire_direction: Vector2, shooter_by: Character) -> void:
 	global_position = spawn_position
 	direction = fire_direction.normalized()
-	fired_by_player_id = player_id
-	killer_player = killer
+	shooter = shooter_by
 	rotation = direction.angle()
 
 
