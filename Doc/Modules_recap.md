@@ -9,12 +9,10 @@
 
 | Module | Points | Status |
 |--------|--------|--------|
-| Implement real-time features using WebSockets or similar technology | **2** | ✓ |
 | Implement a complete web-based game where users can play against each other | **2** | ✓ |
 | Remote players — Enable two players on separate computers to play the same game in real-time | **2** | ✓ |
 | Multiplayer game (more than two players) | **2** | ✓ |
-| Game statistics and match history | **1** | ✓ |
-| **Subtotal** | **9** | |
+| **Subtotal** | **6** | |
 
 ---
 
@@ -24,8 +22,10 @@
 | Module | Points | Status |
 |--------|--------|--------|
 | Use a backend framework (Express, Fastify, NestJS, Django, etc.) | **1** | ✓ |
+|Implement real-time features using WebSockets or similar technology. (FastAPI WebSocket (Python) | **2** | ✓ |
 | A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints | **2** | ✓ |
-| **Subtotal** | **3** | |
+|Use an ORM for the database. (SQLAlchemy (Python) + Alembic pour migrations) | **1** | ✓ |
+| **Subtotal** | **6** | |
 
 ---
 
@@ -49,6 +49,7 @@
 |--------|--------|--------|
 | Standard user management and authentication | **2** | ⏳ |
 | Implement remote authentication with OAuth 2.0 | **1** | ⏳ |
+| Game statistics and match history | **1** | ⏳ |
 
 ---
 
