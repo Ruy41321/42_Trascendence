@@ -1,0 +1,19 @@
+{
+  "name": "pong-4player-backend",
+  "version": "1.0.0",
+  "description": "Backend Node.js per Pong multiplayer 4-player",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": ["pong", "multiplayer", "websocket", "game"],
+  "author": "Luigi",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "cors": "^2.8.5"
+  }
+}
