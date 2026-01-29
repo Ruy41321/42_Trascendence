@@ -1,16 +1,16 @@
 /**
  * COLLISION SERVICE
  * 
- * Gestisce tutte le collisioni del gioco:
+ * Handles all game collisions:
  * - Ball vs Paddle (AABB collision)
  * - Bounce mechanics
- * - Spin effect (palla acquisisce velocità del paddle)
+ * - Spin effect (ball acquires paddle velocity)
  * 
  * COLLISION DETECTION: AABB (Axis-Aligned Bounding Box)
- * Algoritmo semplice ma efficace per rettangoli:
- * 1. Check overlap sull'asse X
- * 2. Check overlap sull'asse Y
- * 3. Se entrambi overlap → COLLISION!
+ * Simple but effective algorithm for rectangles:
+ * 1. Check overlap on X axis
+ * 2. Check overlap on Y axis
+ * 3. If both overlap → COLLISION!
  */
 
 import { GAME_CONFIG } from '../config/gameConfig.js';
@@ -18,22 +18,22 @@ import { PhysicsService } from './PhysicsService.js';
 
 export class CollisionService {
   /**
-   * Check collisione palla con tutti i paddle
-   * Ritorna true se c'è stata collision
+   * Check ball collision with all paddles
+   * Returns true if collision occurred
    * 
    * @param {Object} ball - Ball state
-   * @param {Array} players - Array di player/paddle
+   * @param {Array} players - Array of players/paddles
    */
   static checkPaddleCollisions(ball, players) {
     let collisionDetected = false;
     
     for (const player of players) {
-      if (!player.connected) continue; // Skip player disconnessi
+      if (!player.connected) continue; // Skip disconnected players
       
       if (this.checkBallPaddleCollision(ball, player)) {
         this.handlePaddleHit(ball, player);
         collisionDetected = true;
-        break; // Una collision per frame è sufficiente
+        break; // One collision per frame is sufficient
       }
     }
     
@@ -41,13 +41,13 @@ export class CollisionService {
   }
   
   /**
-   * AABB Collision Detection tra palla (cerchio) e paddle (rettangolo)
+   * AABB Collision Detection between ball (circle) and paddle (rectangle)
    * 
-   * Converte cerchio in bounding box per semplificare:
-   * - Ball box: (x - radius, y - radius) a (x + radius, y + radius)
-   * - Paddle box: (x, y) a (x + width, y + height)
+   * Converts circle to bounding box for simplicity:
+   * - Ball box: (x - radius, y - radius) to (x + radius, y + radius)
+   * - Paddle box: (x, y) to (x + width, y + height)
    * 
-   * Overlap se:
+   * Overlap if:
    * - ball.right > paddle.left  AND  ball.left < paddle.right  (X overlap)
    * - ball.bottom > paddle.top  AND  ball.top < paddle.bottom  (Y overlap)
    */
@@ -64,7 +64,7 @@ export class CollisionService {
     const paddleTop = paddle.y;
     const paddleBottom = paddle.y + paddle.height;
     
-    // Check overlap su entrambi gli assi
+    // Check overlap on both axes
     const xOverlap = ballRight > paddleLeft && ballLeft < paddleRight;
     const yOverlap = ballBottom > paddleTop && ballTop < paddleBottom;
     
@@ -72,46 +72,46 @@ export class CollisionService {
   }
   
   /**
-   * Gestisce bounce quando palla colpisce paddle
+   * Handle bounce when ball hits paddle
    * 
-   * MECCANICHE:
-   * 1. Inverti velocità sull'asse principale (X per vertical, Y per horizontal)
-   * 2. Aumenta leggermente speed (acceleration)
-   * 3. Aggiungi "spin" basandosi su dove colpisce il paddle
-   * 4. Push palla fuori dal paddle per evitare stuck
+   * MECHANICS:
+   * 1. Invert velocity on main axis (X for vertical, Y for horizontal)
+   * 2. Slightly increase speed (acceleration)
+   * 3. Add "spin" based on where ball hits the paddle
+   * 4. Push ball out of paddle to avoid getting stuck
    */
   static handlePaddleHit(ball, paddle) {
-    // Determina quale asse invertire basandosi su orientamento paddle
+    // Determine which axis to invert based on paddle orientation
     if (paddle.orientation === 'vertical') {
-      // Paddle verticali: inverti X velocity
+      // Vertical paddles: invert X velocity
       ball.vx = -ball.vx;
       
-      // Push palla fuori dal paddle
+      // Push ball out of paddle
       if (paddle.side === 'left') {
         ball.x = paddle.x + paddle.width + ball.radius + 1;
       } else { // right
         ball.x = paddle.x - ball.radius - 1;
       }
       
-      // Aggiungi spin basandosi su offset Y (dove colpisce il paddle)
+      // Add spin based on Y offset (where ball hits the paddle)
       const hitOffset = ball.y - (paddle.y + paddle.height / 2);
       const maxOffset = paddle.height / 2;
-      const spinFactor = (hitOffset / maxOffset) * 0.5; // Max 50% di spin
+      const spinFactor = (hitOffset / maxOffset) * 0.5; // Max 50% spin
       
       ball.vy += spinFactor * Math.abs(ball.vx);
       
     } else {
-      // Paddle orizzontali: inverti Y velocity
+      // Horizontal paddles: invert Y velocity
       ball.vy = -ball.vy;
       
-      // Push palla fuori
+      // Push ball out
       if (paddle.side === 'top') {
         ball.y = paddle.y + paddle.height + ball.radius + 1;
       } else { // bottom
         ball.y = paddle.y - ball.radius - 1;
       }
       
-      // Spin basandosi su offset X
+      // Spin based on X offset
       const hitOffset = ball.x - (paddle.x + paddle.width / 2);
       const maxOffset = paddle.width / 2;
       const spinFactor = (hitOffset / maxOffset) * 0.5;
@@ -119,18 +119,18 @@ export class CollisionService {
       ball.vx += spinFactor * Math.abs(ball.vy);
     }
     
-    // Aumenta velocità ad ogni bounce
+    // Increase speed on each bounce
     ball.vx *= GAME_CONFIG.BALL.ACCELERATION;
     ball.vy *= GAME_CONFIG.BALL.ACCELERATION;
     
-    // Normalizza per evitare angoli strani
+    // Normalize to avoid weird angles
     PhysicsService.normalizeBallVelocity(ball);
     PhysicsService.clampBallSpeed(ball);
   }
   
   /**
-   * Calcola distanza tra punto (palla) e rettangolo (paddle)
-   * Utile per collision detection più precisa
+   * Calculate distance between point (ball) and rectangle (paddle)
+   * Useful for more precise collision detection
    */
   static pointRectDistance(px, py, rx, ry, rw, rh) {
     const dx = Math.max(rx - px, 0, px - (rx + rw));

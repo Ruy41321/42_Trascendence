@@ -1,41 +1,41 @@
 /**
  * PHYSICS SERVICE
  * 
- * Gestisce tutta la fisica del gioco:
- * - Movimento palla (integrazione velocità)
- * - Movimento paddle (input → posizione)
- * - Bounce palla (inversione velocità)
- * - Boundary checking (limiti campo)
+ * Handles all game physics:
+ * - Ball movement (velocity integration)
+ * - Paddle movement (input → position)
+ * - Ball bounce (velocity inversion)
+ * - Boundary checking (field limits)
  * 
- * CONCETTO CHIAVE: Delta Time (dt)
- * - Per movimento smooth indipendente da framerate
- * - velocity * deltaTime = distanza percorsa
- * - Es: 300 px/s * 0.016s = 4.8 pixel per frame a 60fps
+ * KEY CONCEPT: Delta Time (dt)
+ * - For smooth movement independent of framerate
+ * - velocity * deltaTime = distance traveled
+ * - E.g.: 300 px/s * 0.016s = 4.8 pixels per frame at 60fps
  */
 
-import { GAME_CONFIG } from '../config/gameConfig.js';
+import { GAME_CONFIG, ACTIVE_SIDES } from '../config/gameConfig.js';
 
 export class PhysicsService {
   /**
-   * Aggiorna posizione palla basandosi su velocità
+   * Update ball position based on velocity
    * 
-   * @param {Object} ball - Ball object da gameState
-   * @param {number} dt - Delta time in secondi (es: 0.016 per 60fps)
+   * @param {Object} ball - Ball object from gameState
+   * @param {number} dt - Delta time in seconds (e.g.: 0.016 for 60fps)
    */
   static updateBall(ball, dt) {
-    // Integrazione Euler: position += velocity * time
+    // Euler integration: position += velocity * time
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
   }
   
   /**
-   * Muove paddle basandosi su input del player
+   * Move paddle based on player input
    * 
-   * @param {Object} player - Player object da gameState
+   * @param {Object} player - Player object from gameState
    * @param {number} dt - Delta time
    */
   static updatePaddle(player, dt) {
-    if (!player.input) return; // Nessun input = fermo
+    if (!player.input) return; // No input = stationary
     
     const speed = player.orientation === 'vertical' 
       ? GAME_CONFIG.PADDLE.VERTICAL.SPEED 
@@ -44,7 +44,7 @@ export class PhysicsService {
     const distance = speed * dt;
     
     if (player.orientation === 'vertical') {
-      // Paddle verticali: muovono su/giù (Y axis)
+      // Vertical paddles: move up/down (Y axis)
       if (player.input === 'UP') {
         player.y = Math.max(0, player.y - distance);
       } else if (player.input === 'DOWN') {
@@ -54,8 +54,8 @@ export class PhysicsService {
         );
       }
     } else {
-      // Paddle orizzontali: muovono sinistra/destra (X axis)
-      // Input 'UP' = sinistra, 'DOWN' = destra (logica mappata da frontend)
+      // Horizontal paddles: move left/right (X axis)
+      // Input 'UP' = left, 'DOWN' = right (mapped from frontend)
       if (player.input === 'UP') {
         player.x = Math.max(0, player.x - distance);
       } else if (player.input === 'DOWN') {
@@ -68,52 +68,92 @@ export class PhysicsService {
   }
   
   /**
-   * Bounce palla contro bordi del campo (NON paddle)
-   * Ritorna il side che ha perso il punto, o null se no out
+   * Check ball bounds against field edges (NOT paddles)
+   * Returns object with type ('miss' or 'rebounce') and side
    * 
-   * MECCANICA: Se palla esce da un lato, quel player perde punto
+   * MECHANIC: 
+   * - If ball exits from a side WITH a player, that player misses (others score)
+   * - If ball exits from a side WITHOUT a player, it rebounds
+   * 
+   * @param {Object} ball - Ball object
+   * @param {number} activePlayerCount - Number of players in game (2-4)
+   * @returns {Object|null} - { type: 'miss'|'rebounce', side: string } or null
    */
-  static checkBallBounds(ball) {
-    let missedSide = null;
+  static checkBallBounds(ball, activePlayerCount) {
+    const activeSides = ACTIVE_SIDES[activePlayerCount] || ACTIVE_SIDES[4];
+    let hitSide = null;
     
-    // Left boundary (player 0 perde)
+    // Left boundary
     if (ball.x - ball.radius <= 0) {
-      missedSide = 'left';
+      hitSide = 'left';
     }
-    // Right boundary (player 2 perde)
+    // Right boundary
     else if (ball.x + ball.radius >= GAME_CONFIG.CANVAS_WIDTH) {
-      missedSide = 'right';
+      hitSide = 'right';
     }
-    // Top boundary (player 1 perde)
+    // Top boundary
     else if (ball.y - ball.radius <= 0) {
-      missedSide = 'top';
+      hitSide = 'top';
     }
-    // Bottom boundary (player 3 perde)
+    // Bottom boundary
     else if (ball.y + ball.radius >= GAME_CONFIG.CANVAS_HEIGHT) {
-      missedSide = 'bottom';
+      hitSide = 'bottom';
     }
     
-    return missedSide;
+    if (!hitSide) return null;
+    
+    // Check if this side has an active player
+    if (activeSides.includes(hitSide)) {
+      return { type: 'miss', side: hitSide };
+    } else {
+      return { type: 'rebounce', side: hitSide };
+    }
   }
   
   /**
-   * Normalizza velocità palla per evitare velocità troppo orizzontali/verticali
-   * Questo previene palla "stuck" che va perfettamente orizzontale
+   * Rebound ball off a wall (for sides without players)
+   * @param {Object} ball - Ball object
+   * @param {string} side - Which side hit ('left', 'right', 'top', 'bottom')
+   */
+  static reboundBall(ball, side) {
+    switch (side) {
+      case 'left':
+        ball.x = ball.radius + 1;  // Push ball back inside
+        ball.vx = Math.abs(ball.vx);  // Ensure moving right
+        break;
+      case 'right':
+        ball.x = GAME_CONFIG.CANVAS_WIDTH - ball.radius - 1;
+        ball.vx = -Math.abs(ball.vx);  // Ensure moving left
+        break;
+      case 'top':
+        ball.y = ball.radius + 1;
+        ball.vy = Math.abs(ball.vy);  // Ensure moving down
+        break;
+      case 'bottom':
+        ball.y = GAME_CONFIG.CANVAS_HEIGHT - ball.radius - 1;
+        ball.vy = -Math.abs(ball.vy);  // Ensure moving up
+        break;
+    }
+  }
+  
+  /**
+   * Normalize ball velocity to avoid too horizontal/vertical trajectories
+   * This prevents ball getting "stuck" moving perfectly horizontal
    */
   static normalizeBallVelocity(ball) {
-    const MIN_ANGLE = 0.3; // ~17° minimo
+    const MIN_ANGLE = 0.3; // ~17° minimum
     
     const speed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
     const angle = Math.atan2(ball.vy, ball.vx);
     
-    // Se troppo orizzontale, aggiungi componente verticale
+    // If too horizontal, add vertical component
     if (Math.abs(Math.sin(angle)) < MIN_ANGLE) {
       const sign = ball.vy >= 0 ? 1 : -1;
       ball.vy = sign * speed * MIN_ANGLE;
       ball.vx = Math.sign(ball.vx) * Math.sqrt(speed ** 2 - ball.vy ** 2);
     }
     
-    // Se troppo verticale, aggiungi componente orizzontale
+    // If too vertical, add horizontal component
     if (Math.abs(Math.cos(angle)) < MIN_ANGLE) {
       const sign = ball.vx >= 0 ? 1 : -1;
       ball.vx = sign * speed * MIN_ANGLE;
@@ -122,7 +162,7 @@ export class PhysicsService {
   }
   
   /**
-   * Limita velocità palla al massimo consentito
+   * Clamp ball speed to maximum allowed
    */
   static clampBallSpeed(ball) {
     const currentSpeed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);

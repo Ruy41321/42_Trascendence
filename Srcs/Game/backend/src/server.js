@@ -1,32 +1,40 @@
 /**
  * SERVER ENTRY POINT
  * 
- * Setup e avvio del server Node.js con:
- * - Express: Web server per servire frontend (opzionale)
- * - Socket.IO: WebSocket server per real-time multiplayer
- * - Game Loop: Tick a 60fps che aggiorna game state
+ * Setup and startup of Node.js server with:
+ * - Express: Web server for serving frontend (optional)
+ * - Socket.IO: WebSocket server for real-time multiplayer
+ * - Game Loop: 60fps tick that updates game state
  * 
- * ARCHITETTURA:
- * 1. Client connette via WebSocket
- * 2. Server assegna player a una room/game
- * 3. Game loop tick ogni 16ms (60fps)
- * 4. Server broadcasta stato a tutti i client
- * 5. Client ricevono stato e renderizzano
+ * ARCHITECTURE:
+ * 1. Client connects via WebSocket
+ * 2. Client joins lobby or spectates
+ * 3. When enough players ready, game starts
+ * 4. Game loop ticks every 16ms (60fps)
+ * 5. Server broadcasts state to all clients
  * 
- * EVENTI SOCKET.IO:
+ * SOCKET.IO EVENTS:
  * Client → Server:
- *   - 'joinGame': Client vuole entrare in partita
- *   - 'playerInput': Client invia input (UP/DOWN)
- *   - 'disconnect': Client disconnette
+ *   - 'joinLobby': Client wants to join lobby with a name
+ *   - 'spectate': Client wants to watch without playing
+ *   - 'startGame': Lobby players request game start
+ *   - 'playerInput': Client sends input (UP/DOWN)
+ *   - 'voteAbandon': Player votes to abandon current game
+ *   - 'restartGame': Request game restart after finish
+ *   - 'disconnect': Client disconnects
  * 
  * Server → Client:
- *   - 'gameState': Broadcast stato ogni tick
- *   - 'playerAssigned': Conferma connessione + assegnazione player
- *   - 'gameEvent': Eventi speciali (score, collision, etc)
+ *   - 'gameState': Broadcast state every tick
+ *   - 'lobbyUpdate': Lobby state changed
+ *   - 'playerAssigned': Confirm connection + player assignment
+ *   - 'spectatorAssigned': Confirm spectator status
+ *   - 'gameEvent': Special events (score, collision, etc)
  */
 
 import express from 'express';
 import { createServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
+import { readFileSync, existsSync } from 'fs';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { GameState } from './models/GameState.js';
@@ -38,13 +46,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// HTTP server
-const httpServer = createServer(app);
+// Check for SSL certificates
+const SSL_CERT_PATH = '/app/certs/server.crt';
+const SSL_KEY_PATH = '/app/certs/server.key';
+const useHttps = existsSync(SSL_CERT_PATH) && existsSync(SSL_KEY_PATH);
 
-// Socket.IO server con CORS permissive (per sviluppo locale)
-const io = new Server(httpServer, {
+// Create HTTP or HTTPS server based on certificate availability
+let server;
+if (useHttps) {
+  const sslOptions = {
+    cert: readFileSync(SSL_CERT_PATH),
+    key: readFileSync(SSL_KEY_PATH),
+  };
+  server = createHttpsServer(sslOptions, app);
+  console.log('🔒 HTTPS/WSS enabled');
+} else {
+  server = createServer(app);
+  console.log('⚠️  Running in HTTP mode (no SSL certificates found)');
+}
+
+// Socket.IO server with permissive CORS (for local development)
+const io = new Server(server, {
   cors: {
-    origin: '*', // In produzione, specifica origine esatta
+    origin: '*', // In production, specify exact origin
     methods: ['GET', 'POST'],
   },
 });
@@ -53,18 +77,14 @@ const io = new Server(httpServer, {
 // GAME STATE MANAGEMENT
 // ============================================================
 
-/**
- * Per ora: una singola game room
- * TODO: Implementa multiple rooms per partite simultane
- */
 const games = new Map();
 const MAIN_ROOM = 'room-1';
 
-// Crea game principale
+// Create main game
 games.set(MAIN_ROOM, new GameState(MAIN_ROOM));
 
 /**
- * Get o crea game room
+ * Get or create game room
  */
 function getGame(roomId = MAIN_ROOM) {
   if (!games.has(roomId)) {
@@ -74,32 +94,60 @@ function getGame(roomId = MAIN_ROOM) {
 }
 
 // ============================================================
-// GAME LOOP - IL CUORE DEL SERVER
+// GAME LOOP - THE HEART OF THE SERVER
 // ============================================================
 
 /**
- * Game loop autoritativo che gira a 60 tick/sec
+ * Authoritative game loop running at 60 ticks/sec
  * 
- * RESPONSABILITÀ:
- * 1. Chiama GameService.update() per ogni game attiva
- * 2. Raccoglie eventi (score, collision)
- * 3. Broadcasta nuovo stato a tutti i client connessi
+ * RESPONSIBILITIES:
+ * 1. Calls GameService.update() for each active game
+ * 2. Collects events (score, collision)
+ * 3. Broadcasts new state to all connected clients
  * 
- * PERCHÉ AUTHORITATIVE SERVER?
- * - Previene cheating (client non può modificare stato)
- * - Sincronizza tutti i player (single source of truth)
- * - Gestisce latency issues centralmente
+ * WHY AUTHORITATIVE SERVER?
+ * - Prevents cheating (client cannot modify state)
+ * - Synchronizes all players (single source of truth)
+ * - Handles latency issues centrally
  */
 function gameLoop() {
   const gameState = getGame();
   
+  // Check if reconnection timeout expired
+  if (gameState._timeoutExpired) {
+    gameState._timeoutExpired = false;  // Reset flag
+    io.to(MAIN_ROOM).emit('gameEvent', {
+      type: 'gameReset',
+      data: { reason: 'Reconnection timeout expired - match cancelled' },
+    });
+    io.to(MAIN_ROOM).emit('lobbyUpdate', {
+      players: [],
+      canStart: false,
+      spectators: [],  // Spectators also cleared
+    });
+  }
+  
+  // Check if finished timeout expired (auto-reset after game over)
+  if (gameState._finishedTimeoutExpired) {
+    gameState._finishedTimeoutExpired = false;  // Reset flag
+    io.to(MAIN_ROOM).emit('gameEvent', {
+      type: 'gameReset',
+      data: { reason: 'No action taken - returning to lobby' },
+    });
+    io.to(MAIN_ROOM).emit('lobbyUpdate', {
+      players: [],
+      canStart: false,
+      spectators: [],  // Spectators also cleared
+    });
+  }
+  
   // Update game logic
   const events = GameService.update(gameState);
   
-  // Broadcast stato a tutti i client nella room
+  // Broadcast state to all clients in the room
   io.to(MAIN_ROOM).emit('gameState', gameState.serialize());
   
-  // Invia eventi speciali se accaduti
+  // Send special events if they occurred
   if (events.scored) {
     io.to(MAIN_ROOM).emit('gameEvent', {
       type: 'score',
@@ -116,107 +164,235 @@ function gameLoop() {
           id: p.id,
           side: p.side,
           score: p.score,
+          name: p.name,
         })),
       },
     });
   }
 }
 
-// Avvia game loop a 60 tick/sec (16.66ms per tick)
+// Start game loop at 60 ticks/sec (16.66ms per tick)
 const TICK_INTERVAL = 1000 / GAME_CONFIG.SERVER.TICK_RATE;
 setInterval(gameLoop, TICK_INTERVAL);
 
-console.log(`🎮 Game loop avviato a ${GAME_CONFIG.SERVER.TICK_RATE} tick/sec`);
+console.log(`🎮 Game loop started at ${GAME_CONFIG.SERVER.TICK_RATE} ticks/sec`);
 
 // ============================================================
 // SOCKET.IO EVENT HANDLERS
 // ============================================================
 
 io.on('connection', (socket) => {
-  console.log(`✅ Client connesso: ${socket.id}`);
+  console.log(`✅ Client connected: ${socket.id}`);
+  
+  // Join the main room immediately for receiving broadcasts
+  socket.join(MAIN_ROOM);
+  
+  // Send current state
+  const gameState = getGame(MAIN_ROOM);
+  socket.emit('gameState', gameState.serialize());
   
   /**
-   * CLIENT VUOLE ENTRARE IN PARTITA
-   * 
-   * Flow:
-   * 1. Client invia 'joinGame'
-   * 2. Server assegna primo slot libero
-   * 3. Server risponde con 'playerAssigned'
-   * 4. Client sa quale player è e può iniziare a giocare
+   * CLIENT WANTS TO JOIN LOBBY WITH NAME
    */
-  socket.on('joinGame', (data) => {
-    const roomId = data?.roomId || MAIN_ROOM;
-    const gameState = getGame(roomId);
+  socket.on('joinLobby', (data) => {
+    const { playerName } = data;
+    const gameState = getGame(MAIN_ROOM);
     
-    // Connetti player
-    const player = GameService.connectPlayer(gameState, socket.id);
-    
-    if (!player) {
-      // Room piena
-      socket.emit('error', {
-        message: 'Game room piena. Max 4 player.',
-      });
+    if (!playerName || playerName.trim().length === 0) {
+      socket.emit('error', { message: 'Player name is required' });
       return;
     }
     
-    // Aggiungi socket alla room
-    socket.join(roomId);
+    const result = GameService.joinLobby(gameState, socket.id, playerName.trim());
     
-    // Conferma a client con info player assegnato
-    socket.emit('playerAssigned', {
-      playerId: player.id,
-      side: player.side,
-      roomId: roomId,
-      gameStatus: gameState.status,
-    });
+    if (!result) {
+      socket.emit('error', { message: 'Lobby is full (max 4 players)' });
+      return;
+    }
     
-    // Notifica altri player
-    socket.to(roomId).emit('gameEvent', {
-      type: 'playerJoined',
-      data: {
-        playerId: player.id,
-        side: player.side,
-        connectedPlayers: gameState.players.filter(p => p.connected).length,
-      },
-    });
+    // Check if name was already taken
+    if (result.error === 'nameTaken') {
+      socket.emit('error', { message: result.message, code: 'NAME_TAKEN' });
+      return;
+    }
     
-    console.log(`🎮 Player ${player.id} (${player.side}) assegnato a ${socket.id}`);
+    // If player reconnected to active game
+    if (result.inGame) {
+      socket.emit('playerAssigned', {
+        playerId: result.playerId,
+        side: result.side,
+        name: result.name,
+        roomId: MAIN_ROOM,
+        gameStatus: gameState.status,
+        reconnected: true,
+      });
+      
+      // Notify others
+      socket.to(MAIN_ROOM).emit('gameEvent', {
+        type: 'playerReconnected',
+        data: { name: result.name, side: result.side },
+      });
+    } else {
+      // Player joined lobby
+      socket.emit('lobbyJoined', {
+        name: result.name,
+        reconnected: result.reconnected,
+        canStart: gameState.canStartGame(),
+        playersInLobby: gameState.lobby.playersReady.length,
+      });
+      
+      // Broadcast lobby update to all
+      io.to(MAIN_ROOM).emit('lobbyUpdate', {
+        players: gameState.lobby.playersReady.map(p => ({ name: p.name })),
+        canStart: gameState.canStartGame(),
+        spectators: gameState.spectators.map(s => ({ name: s.name })),
+      });
+    }
     
-    // Invia stato corrente immediatamente
-    socket.emit('gameState', gameState.serialize());
+    console.log(`🎮 ${result.reconnected ? 'Reconnected' : 'Joined'}: "${result.name}"`);
   });
   
   /**
-   * CLIENT INVIA INPUT (tasti premuti)
-   * 
-   * Flow:
-   * 1. Client preme tasto (es: W)
-   * 2. Frontend invia 'playerInput' con direction: 'UP'
-   * 3. Server aggiorna player.input nel gameState
-   * 4. Al prossimo tick, PhysicsService muove il paddle
-   * 
-   * INPUT TYPES:
-   * - 'UP': Muove verso alto/sinistra
-   * - 'DOWN': Muove verso basso/destra
-   * - null: Stop movimento
+   * CLIENT WANTS TO SPECTATE
+   */
+  socket.on('spectate', (data) => {
+    const gameState = getGame(MAIN_ROOM);
+    const spectator = GameService.addSpectator(gameState, socket.id, data?.name);
+    
+    socket.emit('spectatorAssigned', {
+      name: spectator.name,
+      roomId: MAIN_ROOM,
+      gameStatus: gameState.status,
+    });
+    
+    // Broadcast update
+    io.to(MAIN_ROOM).emit('lobbyUpdate', {
+      players: gameState.lobby.playersReady.map(p => ({ name: p.name })),
+      canStart: gameState.canStartGame(),
+      spectators: gameState.spectators.map(s => ({ name: s.name })),
+    });
+  });
+  
+  /**
+   * LOBBY PLAYERS REQUEST GAME START
+   */
+  socket.on('startGame', (data = {}) => {
+    const gameState = getGame(MAIN_ROOM);
+    const { vsAI } = data;
+    
+    // Only allow if in lobby status and enough players
+    if (gameState.status !== 'lobby') {
+      socket.emit('error', { message: 'Game already in progress' });
+      return;
+    }
+    
+    // For AI mode, need exactly 1 player; for normal mode, need at least 2
+    const playersInLobby = gameState.lobby.playersReady.length;
+    
+    if (vsAI) {
+      if (playersInLobby !== 1) {
+        socket.emit('error', { message: 'AI mode requires exactly 1 player' });
+        return;
+      }
+    } else {
+      if (!gameState.canStartGame()) {
+        socket.emit('error', { message: 'Need at least 2 players to start' });
+        return;
+      }
+    }
+    
+    // Start the game
+    const started = GameService.startGame(gameState, vsAI);
+    
+    if (started) {
+      // Notify all lobby players of their assignments
+      gameState.players.forEach(player => {
+        if (player.connected && player.socketIds.length > 0) {
+          player.socketIds.forEach(sid => {
+            io.to(sid).emit('playerAssigned', {
+              playerId: player.id,
+              side: player.side,
+              name: player.name,
+              roomId: MAIN_ROOM,
+              gameStatus: gameState.status,
+            });
+          });
+        }
+      });
+      
+      // Broadcast game start event
+      io.to(MAIN_ROOM).emit('gameEvent', {
+        type: 'gameStart',
+        data: {
+          playerCount: gameState.activePlayerCount,
+          aiEnabled: gameState.aiEnabled,
+          players: gameState.players.filter(p => p.connected).map(p => ({
+            id: p.id,
+            side: p.side,
+            name: p.name,
+          })),
+        },
+      });
+      
+      // Clear lobby
+      gameState.lobby.playersReady = [];
+    }
+  });
+  
+  /**
+   * CLIENT SENDS INPUT (pressed keys)
    */
   socket.on('playerInput', (data) => {
-    const { input } = data; // 'UP' | 'DOWN' | null
+    const { input } = data;
     const gameState = getGame(MAIN_ROOM);
     
     GameService.handlePlayerInput(gameState, socket.id, input);
   });
   
   /**
-   * CLIENT VUOLE RESTART PARTITA
+   * PLAYER VOTES TO ABANDON GAME
+   */
+  socket.on('voteAbandon', () => {
+    const gameState = getGame(MAIN_ROOM);
+    
+    const result = GameService.voteToAbandon(gameState, socket.id);
+    
+    if (result) {
+      if (result.abandoned) {
+        // Game was abandoned, notify all
+        io.to(MAIN_ROOM).emit('gameEvent', {
+          type: 'gameAbandoned',
+          data: { reason: 'All players voted to abandon' },
+        });
+        
+        io.to(MAIN_ROOM).emit('lobbyUpdate', {
+          players: [],
+          canStart: false,
+          spectators: gameState.spectators.map(s => ({ name: s.name })),
+        });
+      } else {
+        // Broadcast vote update
+        io.to(MAIN_ROOM).emit('gameEvent', {
+          type: 'abandonVote',
+          data: {
+            playerName: result.playerName,
+            votes: gameState.players.filter(p => p.votedToAbandon).length,
+            totalPlayers: gameState.players.filter(p => p.connected).length,
+          },
+        });
+      }
+    }
+  });
+  
+  /**
+   * CLIENT REQUESTS GAME RESTART
    */
   socket.on('restartGame', () => {
     const gameState = getGame(MAIN_ROOM);
     
-    // Solo se tutti i player sono ancora connessi
-    if (gameState.isReady()) {
-      GameService.startGame(gameState);
-      
+    const restarted = GameService.restartGame(gameState);
+    
+    if (restarted) {
       io.to(MAIN_ROOM).emit('gameEvent', {
         type: 'gameRestart',
         data: {},
@@ -225,31 +401,57 @@ io.on('connection', (socket) => {
   });
   
   /**
-   * CLIENT DISCONNETTE
-   * 
-   * Automatico quando:
-   * - Client chiude browser
-   * - Perde connessione internet
-   * - Refresh pagina
+   * CLIENT DISCONNECTS
    */
   socket.on('disconnect', () => {
-    console.log(`❌ Client disconnesso: ${socket.id}`);
+    console.log(`❌ Client disconnected: ${socket.id}`);
     
     const gameState = getGame(MAIN_ROOM);
-    GameService.disconnectPlayer(gameState, socket.id);
+    const result = GameService.removeSocket(gameState, socket.id);
     
-    // Notifica altri player
-    io.to(MAIN_ROOM).emit('gameEvent', {
-      type: 'playerLeft',
-      data: {
-        connectedPlayers: gameState.players.filter(p => p.connected).length,
-      },
-    });
+    if (result) {
+      if (result.allDisconnected || result.finishedReset) {
+        // All players disconnected OR player left during finished state - reset for all
+        io.to(MAIN_ROOM).emit('gameEvent', {
+          type: 'gameReset',
+          data: { reason: result.finishedReset ? 'Player left - match ended' : 'All players disconnected' },
+        });
+        
+        io.to(MAIN_ROOM).emit('lobbyUpdate', {
+          players: [],
+          canStart: false,
+          spectators: [],  // Spectators also cleared on reset
+        });
+      } else if (result.type === 'player' && !result.stillConnected) {
+        // Player left (but not all disconnected)
+        io.to(MAIN_ROOM).emit('gameEvent', {
+          type: 'playerLeft',
+          data: {
+            name: result.name,
+            connectedPlayers: gameState.getConnectedPlayersCount(),
+          },
+        });
+      } else if (result.type === 'lobby') {
+        // Lobby player left
+        io.to(MAIN_ROOM).emit('lobbyUpdate', {
+          players: gameState.lobby.playersReady.map(p => ({ name: p.name })),
+          canStart: gameState.canStartGame(),
+          spectators: gameState.spectators.map(s => ({ name: s.name })),
+        });
+      } else if (result.type === 'spectator') {
+        // Spectator left
+        io.to(MAIN_ROOM).emit('lobbyUpdate', {
+          players: gameState.lobby.playersReady.map(p => ({ name: p.name })),
+          canStart: gameState.canStartGame(),
+          spectators: gameState.spectators.map(s => ({ name: s.name })),
+        });
+      }
+    }
   });
 });
 
 // ============================================================
-// REST API (opzionale - per debug/status)
+// REST API (optional - for debug/status)
 // ============================================================
 
 app.get('/', (req, res) => {
@@ -267,9 +469,12 @@ app.get('/api/game/status', (req, res) => {
     players: gameState.players.map(p => ({
       id: p.id,
       side: p.side,
+      name: p.name,
       connected: p.connected,
       score: p.score,
     })),
+    lobby: gameState.lobby.playersReady.map(p => ({ name: p.name })),
+    spectators: gameState.spectators.map(s => ({ name: s.name })),
     tick: gameState.tick,
   });
 });
@@ -279,31 +484,31 @@ app.get('/api/game/status', (req, res) => {
 // ============================================================
 
 const PORT = process.env.PORT || GAME_CONFIG.SERVER.PORT;
+const protocol = useHttps ? 'https' : 'http';
+const wsProtocol = useHttps ? 'wss' : 'ws';
 
-httpServer.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════╗
-║   🎮 PONG 4-PLAYER SERVER AVVIATO 🎮     ║
+║   🎮 PONG 4-PLAYER SERVER STARTED 🎮     ║
 ╠═══════════════════════════════════════════╣
 ║  Port:        ${PORT}                         ║
+║  Protocol:    ${protocol.toUpperCase().padEnd(26)}║
 ║  Tick Rate:   ${GAME_CONFIG.SERVER.TICK_RATE} fps                      ║
 ║  Max Players: ${GAME_CONFIG.GAME.MAX_PLAYERS}                          ║
+║  Min to Start: ${GAME_CONFIG.GAME.MIN_PLAYERS_TO_START}                         ║
 ╚═══════════════════════════════════════════╝
 
-Server pronto per connessioni!
-Frontend URL: http://localhost:5173
-WebSocket URL: ws://localhost:${PORT}
-
-Per testare su LAN, usa l'IP locale:
-  ws://YOUR_LOCAL_IP:${PORT}
+Server ready for connections!
+WebSocket URL: ${wsProtocol}://localhost:${PORT}
   `);
 });
 
-// Gestione errori graceful shutdown
+// Graceful shutdown handling
 process.on('SIGINT', () => {
   console.log('\n👋 Server shutting down...');
-  httpServer.close(() => {
-    console.log('✅ Server chiuso');
+  server.close(() => {
+    console.log('✅ Server closed');
     process.exit(0);
   });
 });

@@ -1,17 +1,17 @@
 /**
  * WEBSOCKET COMPOSABLE
  * 
- * Vue Composable per gestire connessione WebSocket con Socket.IO.
+ * Vue Composable for managing WebSocket connection with Socket.IO.
  * 
  * COMPOSABLE PATTERN:
- * - Funzione riutilizzabile che gestisce logica specifica
- * - Ritorna ref/reactive e metodi
- * - Può essere usata in qualsiasi component
+ * - Reusable function that handles specific logic
+ * - Returns refs/reactive and methods
+ * - Can be used in any component
  * 
  * LIFECYCLE:
- * 1. setup() → crea connessione socket
- * 2. onMounted() → attach event listeners
- * 3. onUnmounted() → cleanup e disconnect
+ * 1. setup() → create socket connection
+ * 2. Attach event listeners
+ * 3. onUnmounted() → cleanup and disconnect
  */
 
 import { ref, onUnmounted } from 'vue';
@@ -19,15 +19,23 @@ import { io } from 'socket.io-client';
 import { GAME_CONFIG } from '../config/gameConfig.js';
 
 export function useWebSocket() {
-  // Stato reattivo della connessione
+  // Connection state
   const connected = ref(false);
-  const myPlayer = ref(null); // Info sul player assegnato
-  const gameState = ref(null); // Stato del gioco dal server
-  const lastEvent = ref(null); // Ultimo evento ricevuto
+  const myPlayer = ref(null);         // Player info when in game
+  const gameState = ref(null);        // Game state from server
+  const lastEvent = ref(null);        // Last event received
+  const isSpectator = ref(false);     // Whether client is spectating
+  const inLobby = ref(false);         // Whether client is in lobby
+  const lobbyState = ref({            // Lobby state
+    players: [],
+    spectators: [],
+    canStart: false,
+  });
+  const myName = ref(null);           // Client's name
   
-  // Crea connessione Socket.IO
+  // Create Socket.IO connection
   const socket = io(GAME_CONFIG.SOCKET_URL, {
-    transports: ['websocket'], // Forza WebSocket (no long-polling fallback)
+    transports: ['websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 5,
@@ -38,53 +46,93 @@ export function useWebSocket() {
   // ============================================================
   
   /**
-   * Connessione stabilita
+   * Connection established
    */
   socket.on('connect', () => {
-    console.log('✅ WebSocket connesso:', socket.id);
+    console.log('✅ WebSocket connected:', socket.id);
     connected.value = true;
   });
   
   /**
-   * Disconnessione
+   * Disconnection
    */
   socket.on('disconnect', (reason) => {
-    console.log('❌ WebSocket disconnesso:', reason);
+    console.log('❌ WebSocket disconnected:', reason);
     connected.value = false;
-    myPlayer.value = null;
   });
   
   /**
-   * Server assegna player slot
-   * Ricevuto dopo aver inviato 'joinGame'
+   * Joined lobby successfully
    */
-  socket.on('playerAssigned', (data) => {
-    console.log('🎮 Player assegnato:', data);
-    myPlayer.value = {
-      id: data.playerId,
-      side: data.side,
-      roomId: data.roomId,
+  socket.on('lobbyJoined', (data) => {
+    console.log('🎮 Joined lobby:', data);
+    inLobby.value = true;
+    isSpectator.value = false;
+    myName.value = data.name;
+  });
+  
+  /**
+   * Lobby state updated
+   */
+  socket.on('lobbyUpdate', (data) => {
+    console.log('📋 Lobby update:', data);
+    lobbyState.value = {
+      players: data.players || [],
+      spectators: data.spectators || [],
+      canStart: data.canStart || false,
     };
   });
   
   /**
-   * Ricevi game state dal server (ogni tick = 60 volte/sec)
-   * Questo è il cuore della sincronizzazione multiplayer!
+   * Server assigned player slot (game starting/reconnecting)
+   */
+  socket.on('playerAssigned', (data) => {
+    console.log('🎮 Player assigned:', data);
+    myPlayer.value = {
+      id: data.playerId,
+      side: data.side,
+      name: data.name,
+      roomId: data.roomId,
+    };
+    inLobby.value = false;
+    isSpectator.value = false;
+  });
+  
+  /**
+   * Assigned as spectator
+   */
+  socket.on('spectatorAssigned', (data) => {
+    console.log('👁️ Spectator assigned:', data);
+    isSpectator.value = true;
+    inLobby.value = false;
+    myPlayer.value = null;
+    myName.value = data.name;
+  });
+  
+  /**
+   * Receive game state from server (every tick = 60 times/sec)
    */
   socket.on('gameState', (state) => {
     gameState.value = state;
   });
   
   /**
-   * Eventi speciali (score, collision, gameOver, etc)
+   * Special events (score, collision, gameOver, etc)
    */
   socket.on('gameEvent', (event) => {
     console.log('🎯 Game Event:', event);
     lastEvent.value = event;
     
-    // Puoi gestire eventi specifici qui
-    if (event.type === 'score') {
-      console.log(`Player ${event.data.playerId} scored!`);
+    // Handle specific events
+    if (event.type === 'gameAbandoned' || event.type === 'gameReset') {
+      // Game reset to lobby
+      myPlayer.value = null;
+      inLobby.value = false;
+      isSpectator.value = false;
+    }
+    
+    if (event.type === 'gameStart') {
+      console.log(`🎮 Game started with ${event.data.playerCount} players`);
     }
     
     if (event.type === 'gameOver') {
@@ -93,27 +141,44 @@ export function useWebSocket() {
   });
   
   /**
-   * Errori dal server
+   * Server errors
    */
   socket.on('error', (error) => {
     console.error('❌ Server error:', error);
-    alert(error.message);
+    lastEvent.value = { type: 'error', data: error };
   });
   
   // ============================================================
-  // METODI PUBBLICI
+  // PUBLIC METHODS
   // ============================================================
   
   /**
-   * Entra in partita (chiamato quando app si monta)
+   * Join lobby with a name
    */
-  function joinGame(roomId = 'room-1') {
-    console.log('🎮 Joining game...', roomId);
-    socket.emit('joinGame', { roomId });
+  function joinLobby(playerName) {
+    console.log('🎮 Joining lobby as:', playerName);
+    socket.emit('joinLobby', { playerName });
   }
   
   /**
-   * Invia input al server
+   * Join as spectator
+   */
+  function spectate(name = null) {
+    console.log('👁️ Joining as spectator');
+    socket.emit('spectate', { name });
+  }
+  
+  /**
+   * Request game start (from lobby)
+   * @param {boolean} vsAI - If true, start game vs AI
+   */
+  function startGame(vsAI = false) {
+    console.log(`🎮 Requesting game start${vsAI ? ' vs AI' : ''}`);
+    socket.emit('startGame', { vsAI });
+  }
+  
+  /**
+   * Send input to server
    * @param {string} input - 'UP' | 'DOWN' | null
    */
   function sendInput(input) {
@@ -121,34 +186,54 @@ export function useWebSocket() {
   }
   
   /**
-   * Richiedi restart partita
+   * Vote to abandon current game
+   */
+  function voteAbandon() {
+    console.log('🗳️ Voting to abandon');
+    socket.emit('voteAbandon');
+  }
+  
+  /**
+   * Request game restart
    */
   function restartGame() {
     socket.emit('restartGame');
   }
   
   /**
-   * Cleanup quando component viene unmounted
+   * Cleanup when component unmounts
    */
   onUnmounted(() => {
-    console.log('🔌 Disconnecting socket...');
-    socket.disconnect();
+    // Check if socket is connected before disconnecting to avoid warning
+    if (socket.connected) {
+      console.log('🔌 Disconnecting socket...');
+      socket.disconnect();
+    } else {
+      console.log('🔌 Socket already disconnected, skipping cleanup');
+    }
   });
   
-  // Ritorna API pubblica
+  // Return public API
   return {
     // State
     connected,
     myPlayer,
     gameState,
     lastEvent,
+    isSpectator,
+    inLobby,
+    lobbyState,
+    myName,
     
     // Methods
-    joinGame,
+    joinLobby,
+    spectate,
+    startGame,
     sendInput,
+    voteAbandon,
     restartGame,
     
-    // Raw socket (per casi avanzati)
+    // Raw socket (for advanced cases)
     socket,
   };
 }

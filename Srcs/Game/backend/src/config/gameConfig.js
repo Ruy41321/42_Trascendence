@@ -1,69 +1,70 @@
 /**
  * GAME CONFIGURATION
  * 
- * Costanti centrali del gioco. Modificando questi valori puoi:
- * - Cambiare dimensioni campo
- * - Velocità palla
- * - Dimensioni paddle
- * - Tick rate del server
+ * Central game constants. By modifying these values you can:
+ * - Change field dimensions
+ * - Ball speed
+ * - Paddle sizes
+ * - Server tick rate
  * 
- * IMPORTANTE: Se modifichi CANVAS_WIDTH/HEIGHT, aggiorna anche nel frontend!
+ * IMPORTANT: If you modify CANVAS_WIDTH/HEIGHT, update the frontend config too!
  */
 
 export const GAME_CONFIG = {
-  // Dimensioni campo da gioco (in pixel)
+  // Game field dimensions (in pixels)
   CANVAS_WIDTH: 800,
   CANVAS_HEIGHT: 600,
   
-  // Fisica palla
+  // Ball physics
   BALL: {
-    RADIUS: 8,                    // Raggio palla in pixel
-    INITIAL_SPEED: 300,           // Velocità iniziale in pixel/secondo
-    MAX_SPEED: 600,               // Velocità massima
-    ACCELERATION: 1.05,           // Moltiplicatore ad ogni bounce (aumenta velocità)
+    RADIUS: 8,                    // Ball radius in pixels
+    INITIAL_SPEED: 300,           // Initial speed in pixels/second
+    MAX_SPEED: 600,               // Maximum speed
+    ACCELERATION: 1.05,           // Multiplier on each bounce (increases speed)
   },
   
   // Paddle properties
   PADDLE: {
-    // Paddle verticali (LEFT, RIGHT)
+    // Vertical paddles (LEFT, RIGHT)
     VERTICAL: {
       WIDTH: 15,
       HEIGHT: 100,
-      SPEED: 400,                 // Pixel/secondo
+      SPEED: 400,                 // Pixels/second
     },
-    // Paddle orizzontali (TOP, BOTTOM)
+    // Horizontal paddles (TOP, BOTTOM)
     HORIZONTAL: {
       WIDTH: 100,
       HEIGHT: 15,
       SPEED: 400,
     },
-    OFFSET: 20,                   // Distanza dal bordo del campo
+    OFFSET: 20,                   // Distance from field edge
   },
   
   // Game rules
   GAME: {
     MAX_PLAYERS: 4,
-    WIN_SCORE: 10,                // Punti per vincere
-    POINTS_ON_MISS: -1,           // Punti persi se la palla esce dal tuo lato
+    MIN_PLAYERS_TO_START: 2,      // Minimum players to start a game
+    WIN_SCORE: 10,                // Points to win
+    RECONNECT_TIMEOUT: 30000,     // 30 seconds to reconnect before game is cancelled
   },
-  
+
   // Server settings
   SERVER: {
-    TICK_RATE: 60,                // Update al secondo (60 = smooth)
-    PORT: 3000,
+    TICK_RATE: 60,                // Updates per second (60 = smooth)
+    PORT: parseInt(process.env.PORT) || 3000,  // Read from .env
   },
 };
 
 /**
- * POSIZIONI INIZIALI PADDLE
+ * INITIAL PADDLE POSITIONS
  * 
- * Calcola posizione centrata per ogni paddle sul suo lato.
- * Ogni paddle ha:
- * - id: Identificatore player (0-3)
- * - side: Lato del campo ('left', 'top', 'right', 'bottom')
- * - x, y: Posizione iniziale
- * - width, height: Dimensioni
- * - orientation: 'vertical' o 'horizontal'
+ * Calculates centered position for each paddle on its side.
+ * Each paddle has:
+ * - id: Player identifier (0-3)
+ * - side: Field side ('left', 'top', 'right', 'bottom')
+ * - x, y: Initial position
+ * - width, height: Dimensions
+ * - orientation: 'vertical' or 'horizontal'
  */
 export const INITIAL_PADDLE_POSITIONS = [
   {
@@ -103,3 +104,27 @@ export const INITIAL_PADDLE_POSITIONS = [
     orientation: 'horizontal',
   },
 ];
+
+/**
+ * DYNAMIC SIDE ASSIGNMENTS
+ * 
+ * Maps player count to which paddle slots are active:
+ * - 2 players: left (0) and right (2) - classic Pong
+ * - 3 players: left (0), right (2), bottom (3)
+ * - 4 players: all sides
+ */
+export const SIDE_ASSIGNMENTS = {
+  2: [0, 2],          // left, right
+  3: [0, 2, 3],       // left, right, bottom
+  4: [0, 1, 2, 3],    // all
+};
+
+/**
+ * ACTIVE SIDES for rebounce logic
+ * Returns which sides have players based on player count
+ */
+export const ACTIVE_SIDES = {
+  2: ['left', 'right'],
+  3: ['left', 'right', 'bottom'],
+  4: ['left', 'top', 'right', 'bottom'],
+};

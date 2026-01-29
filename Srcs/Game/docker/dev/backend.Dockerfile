@@ -2,6 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Port configuration
+ARG PORT=3000
+ENV PORT=$PORT
+
 # Copy package files
 COPY package*.json ./
 
@@ -12,7 +16,7 @@ RUN npm install
 COPY src ./src
 
 # Expose WebSocket port
-EXPOSE 3000
+EXPOSE $PORT
 
 # Start server with hot reload
 CMD ["npm", "run", "dev"]

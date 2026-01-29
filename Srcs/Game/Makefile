@@ -1,59 +1,119 @@
-.PHONY: help build up down logs clean dev dev-down prod prod-down restart
+.PHONY: help dev dev-down dev-logs prod prod-down prod-logs logs clean rebuild certs
+
+# ===========================================
+# PONG 4-PLAYER - DOCKER COMMANDS
+# ===========================================
 
 help:
-	@echo "Pong 4-Player Docker Commands"
 	@echo ""
-	@echo "Development:"
-	@echo "  make dev          - Start in development mode (hot reload)"
-	@echo "  make dev-down     - Stop development containers"
+	@echo "╔══════════════════════════════════════════════════════════════╗"
+	@echo "║           🏓 PONG 4-PLAYER - Docker Commands                 ║"
+	@echo "╠══════════════════════════════════════════════════════════════╣"
+	@echo "║                                                              ║"
+	@echo "║  SETUP                                                       ║"
+	@echo "║    make certs        Generate SSL certificates (first time)  ║"
+	@echo "║                                                              ║"
+	@echo "║  DEVELOPMENT (hot reload + HTTPS)                            ║"
+	@echo "║    make dev          Start dev containers                    ║"
+	@echo "║    make dev-down     Stop dev containers                     ║"
+	@echo "║    make dev-logs     View dev logs                           ║"
+	@echo "║    make dev-rebuild  Rebuild and start dev                   ║"
+	@echo "║                                                              ║"
+	@echo "║  PRODUCTION (optimized + HTTPS)                              ║"
+	@echo "║    make prod         Build and start production              ║"
+	@echo "║    make prod-down    Stop production containers              ║"
+	@echo "║    make prod-logs    View production logs                    ║"
+	@echo "║    make prod-rebuild Rebuild and start production            ║"
+	@echo "║                                                              ║"
+	@echo "║  UTILITIES                                                   ║"
+	@echo "║    make clean        Remove all containers/images/volumes    ║"
+	@echo "║    make status       Show running containers                 ║"
+	@echo "║                                                              ║"
+	@echo "╚══════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "Production:"
-	@echo "  make build        - Build production images"
-	@echo "  make up           - Start production containers"
-	@echo "  make down         - Stop production containers"
-	@echo "  make prod         - Build and start production"
-	@echo "  make prod-down    - Stop and remove production"
-	@echo ""
-	@echo "Utils:"
-	@echo "  make logs         - View logs"
-	@echo "  make restart      - Restart containers"
-	@echo "  make clean        - Remove all containers, images, volumes"
 
-# Development
-dev:
-	docker-compose -f docker-compose.dev.yml up -d
-	@echo "Development servers running:"
-	@echo "  Backend:  http://localhost:3000"
-	@echo "  Frontend: http://localhost:5173"
+# ===========================================
+# SSL CERTIFICATES
+# ===========================================
+
+certs:
+	@echo "🔐 Generating SSL certificates..."
+	@chmod +x docker/certs/generate-certs.sh
+	@docker/certs/generate-certs.sh
+
+# ===========================================
+# DEVELOPMENT
+# ===========================================
+
+dev: check-certs
+	@echo "🚀 Starting development environment..."
+	docker compose -f docker/compose.dev.yml up -d
+	@echo ""
+	@echo "✅ Development servers running:"
+	@echo "   Frontend: https://localhost:5173 (Vite + Hot Reload + HTTPS)"
+	@echo "   Backend:  wss://localhost:3000 (WebSocket Secure)"
+	@echo ""
+	@echo "⚠️  Browser may warn about self-signed certificate - click 'Advanced' → 'Proceed'"
+	@echo ""
 
 dev-down:
-	docker-compose -f docker-compose.dev.yml down
+	@echo "🛑 Stopping development containers..."
+	docker compose -f docker/compose.dev.yml down
 
-# Production
-build:
-	docker-compose build
+dev-logs:
+	docker compose -f docker/compose.dev.yml logs -f
 
-up:
-	docker-compose up -d
+dev-rebuild: check-certs
+	@echo "🔄 Rebuilding development environment..."
+	docker compose -f docker/compose.dev.yml up -d --build
 
-down:
-	docker-compose down
+# ===========================================
+# PRODUCTION
+# ===========================================
 
-prod: build up
-	@echo "Production servers running:"
-	@echo "  Backend:  http://localhost:3000"
-	@echo "  Frontend: http://localhost:8080"
+prod: check-certs
+	@echo "🚀 Building and starting production environment..."
+	docker compose -f docker/compose.prod.yml up -d --build
+	@echo ""
+	@echo "✅ Production servers running:"
+	@echo "   Frontend: https://localhost (Nginx + SSL)"
+	@echo "   Backend:  wss://localhost:3000 (WebSocket Secure)"
+	@echo ""
 
-prod-down: down
+prod-down:
+	@echo "🛑 Stopping production containers..."
+	docker compose -f docker/compose.prod.yml down
 
-# Utils
-logs:
-	docker-compose logs -f
+prod-logs:
+	docker compose -f docker/compose.prod.yml logs -f
 
-restart:
-	docker-compose restart
+prod-rebuild: check-certs
+	@echo "🔄 Rebuilding production environment..."
+	docker compose -f docker/compose.prod.yml up -d --build
+
+# ===========================================
+# UTILITIES
+# ===========================================
+
+check-certs:
+	@if [ ! -f docker/certs/server.crt ] || [ ! -f docker/certs/server.key ]; then \
+		echo "⚠️  SSL certificates not found. Generating..."; \
+		$(MAKE) certs; \
+	fi
+
+status:
+	@echo "📊 Container status:"
+	@docker ps --filter "name=pong" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 clean:
-	docker-compose -f docker-compose.yml down -v --rmi all
-	docker-compose -f docker-compose.dev.yml down -v --rmi all
-	@echo "Cleaned all containers, images, and volumes"
+	@echo "🧹 Cleaning all Docker resources..."
+	docker compose -f docker/compose.prod.yml down -v --rmi all 2>/dev/null || true
+	docker compose -f docker/compose.dev.yml down -v --rmi all 2>/dev/null || true
+	@echo "✅ Cleaned all containers, images, and volumes"
+
+# Alias per retrocompatibilità
+build: prod
+up: prod
+down: prod-down
+logs: dev-logs
+restart: dev-rebuild

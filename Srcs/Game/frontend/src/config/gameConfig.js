@@ -1,39 +1,52 @@
 /**
  * GAME CONFIG (Frontend)
  * 
- * IMPORTANTE: Deve matchare con backend/src/config/gameConfig.js
- * Se modifichi dimensioni canvas qui, modifica anche nel backend!
+ * IMPORTANT: Must match backend/src/config/gameConfig.js
+ * If you modify canvas dimensions here, also update them in the backend!
  */
+
+// Determine protocol based on current page (http→ws, https→wss)
+const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
 export const GAME_CONFIG = {
   CANVAS_WIDTH: 800,
   CANVAS_HEIGHT: 600,
   
   // WebSocket connection
-  SOCKET_URL: import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000',
+  // Dynamic: uses client's hostname and protocol (works for localhost, LAN, WAN)
+  // Automatically uses WSS when page is served over HTTPS
+  // Port is read from VITE_PORT env var (default 3000)
+  SOCKET_URL: `${wsProtocol}//${window.location.hostname}:${import.meta.env.VITE_PORT || 3000}`,
   
   // Colors (frontend only)
   COLORS: {
     BACKGROUND: '#0a0e27',
     BALL: '#00d4ff',
-    PADDLE_LEFT: '#ff006e',    // Player 1 (rosa)
-    PADDLE_TOP: '#ffbe0b',     // Player 2 (giallo)
+    PADDLE_LEFT: '#ff006e',    // Player 1 (pink)
+    PADDLE_TOP: '#ffbe0b',     // Player 2 (yellow)
     PADDLE_RIGHT: '#00f5d4',   // Player 3 (cyan)
-    PADDLE_BOTTOM: '#8338ec',  // Player 4 (viola)
+    PADDLE_BOTTOM: '#8338ec',  // Player 4 (purple)
     TEXT: '#ffffff',
     SCORE: '#00d4ff',
   },
   
   // Input mapping
+  // All players use the same keys since they play on different devices/browsers
+  // Vertical paddles (left, right): Arrow Up/Down or W/S
+  // Horizontal paddles (top, bottom): Arrow Left/Right or A/D
   KEYS: {
-    PLAYER_1: { UP: 'KeyW', DOWN: 'KeyS' },           // W, S
-    PLAYER_2: { UP: 'ArrowUp', DOWN: 'ArrowDown' },   // Arrow Up/Down
-    PLAYER_3: { UP: 'KeyI', DOWN: 'KeyK' },           // I, K
-    PLAYER_4: { UP: 'Numpad8', DOWN: 'Numpad5' },     // Numpad 8, 5
+    VERTICAL: { 
+      UP: ['ArrowUp', 'KeyW'],      // Arrow Up or W
+      DOWN: ['ArrowDown', 'KeyS'],  // Arrow Down or S
+    },
+    HORIZONTAL: { 
+      UP: ['ArrowLeft', 'KeyA'],    // Arrow Left or A (moves paddle "up" direction)
+      DOWN: ['ArrowRight', 'KeyD'], // Arrow Right or D (moves paddle "down" direction)
+    },
   },
 };
 
-// Mappa side → colore paddle
+// Map side → paddle color
 export const PADDLE_COLORS = {
   left: GAME_CONFIG.COLORS.PADDLE_LEFT,
   top: GAME_CONFIG.COLORS.PADDLE_TOP,

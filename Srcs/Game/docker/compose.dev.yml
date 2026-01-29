@@ -1,0 +1,63 @@
+# ===========================================
+# DEVELOPMENT DOCKER COMPOSE
+# ===========================================
+# Usage: docker compose -f docker/compose.dev.yml up -d
+# Or:    make dev
+#
+# Features:
+#   - HTTPS/WSS enabled (with self-signed certs)
+#   - Hot reload enabled
+#   - Source code mounted as volumes
+#   - Debug tools available
+#   - Vite dev server on port 5173
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/dev/backend.Dockerfile
+      args:
+        - PORT=${PORT:-3000}
+    container_name: pong-backend-dev
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    environment:
+      - NODE_ENV=development
+      - PORT=${PORT:-3000}
+    env_file:
+      - ../.env
+    volumes:
+      - ../backend/src:/app/src:ro
+      - ../backend/package.json:/app/package.json:ro
+      - ./certs:/app/certs:ro
+    restart: unless-stopped
+    networks:
+      - pong-network-dev
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/dev/frontend.Dockerfile
+      args:
+        - VITE_PORT=${PORT:-3000}
+    container_name: pong-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PORT=${PORT:-3000}
+    env_file:
+      - ../.env
+    volumes:
+      - ../frontend/src:/app/src:ro
+      - ../frontend/index.html:/app/index.html:ro
+      - ../frontend/vite.config.js:/app/vite.config.js:ro
+      - ./certs:/app/certs:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - pong-network-dev
+
+networks:
+  pong-network-dev:
+    driver: bridge
