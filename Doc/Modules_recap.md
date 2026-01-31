@@ -12,7 +12,9 @@
 | Implement a complete web-based game where users can play against each other | **2** | ✓ |
 | Remote players — Enable two players on separate computers to play the same game in real-time | **2** | ✓ |
 | Multiplayer game (more than two players) | **2** | ✓ |
-| **Subtotal** | **6** | |
+| Spectator Mode | **1** | ✓ |
+| Introduce an AI Opponent for games | **2** | ✓ |
+| **Subtotal** | **6 + 3** | |
 
 ---
 
