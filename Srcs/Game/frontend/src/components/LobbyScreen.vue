@@ -10,7 +10,7 @@
 <template>
   <div class="lobby-container">
     <div class="lobby-card">
-      <h2>🎮 Game Lobby</h2>
+      <h2>Game Lobby</h2>
       
       <!-- Join Form (if not in lobby yet) -->
       <div v-if="!isInLobby && !isSpectator" class="join-section">
@@ -198,6 +198,7 @@ function handleStartVsAI() {
   padding: 20px;
 }
 
+/*
 .lobby-card {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -206,6 +207,22 @@ function handleStartVsAI() {
   min-width: 400px;
   max-width: 500px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+*/
+
+
+.lobby-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 32px;
+
+  /* NEW: Fluid width */
+  width: 95%;
+  max-width: 500px;
+
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  margin: 0 auto; /* Centers the card if flex parent allows */
 }
 
 .lobby-card h2 {
@@ -459,5 +476,40 @@ function handleStartVsAI() {
 .game-status strong {
   color: #ff006e;
   text-transform: uppercase;
+}
+
+/* Mobile Optimization */
+@media (max-width: 600px) {
+  .lobby-container {
+    padding: 10px; /* Less padding around the edge */
+    min-height: auto; /* Allow height to fit content */
+  }
+
+  .lobby-card {
+    padding: 20px; /* Reduce internal padding (was 32px) */
+  }
+
+  .lobby-card h2 {
+    font-size: 24px; /* Slightly smaller title */
+    margin-bottom: 16px;
+  }
+
+  /* Make buttons easier to tap */
+  .btn {
+    padding: 14px 16px; /* Taller touch target */
+    font-size: 15px;
+  }
+
+  /* Stack the player slots vertically if the screen is VERY small */
+  /* OR keep them 2-column but with smaller text. Let's try 2-column first. */
+  .player-slot {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  /* Stack the join buttons if needed (optional) */
+  .button-group {
+    flex-direction: column; /* Stack 'Join' and 'Spectate' vertically on mobile */
+  }
 }
 </style>
