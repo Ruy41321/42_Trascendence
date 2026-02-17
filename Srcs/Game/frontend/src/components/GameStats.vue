@@ -362,4 +362,76 @@ kbd {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* =========================================
+   MOBILE TRANSFORMATION: TALL CARD -> SLIM BAR
+   ========================================= */
+@media (max-width: 768px) {
+  .game-stats {
+    /* Reset the card style to be a slim bar */
+    min-width: 0;
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 0;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4); /* Darker background for contrast */
+
+    /* Layout: Horizontal Row */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* 1. Hide less important details to save space */
+  .stat-item:nth-child(1), /* Connection Status */
+  .stat-item.controls {    /* Keyboard Controls */
+    display: none;
+  }
+
+  /* 2. Re-style the items to sit in a line, not a list */
+  .stat-item {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  /* 3. Compact the "You are" text */
+  .label {
+    display: none; /* Hide labels like "You are:" */
+  }
+
+  .value {
+    font-size: 14px;
+  }
+
+  /* 4. Fix the Buttons (Make them small and inline) */
+  .button-group {
+    margin-top: 0;
+    flex-direction: row;
+    gap: 5px;
+  }
+
+  .btn {
+    width: auto; /* Let button shrink to text size */
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* Special fix for the Abandon button to not be huge */
+  .abandon-btn {
+    white-space: nowrap;
+  }
+
+  /* 5. Highlight "Status" specifically */
+  .status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
 </style>
