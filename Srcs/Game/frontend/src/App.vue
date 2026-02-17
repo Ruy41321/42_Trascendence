@@ -250,6 +250,8 @@ function getPaddleColor(side) {
 </script>
 
 <style scoped>
+
+/*TODO: Huge refactoring to make the website responsive and usable on mobile */
 .app-container {
   width: 100%;
   max-width: 1600px;
@@ -428,11 +430,53 @@ function getPaddleColor(side) {
   color: #ff006e;
 }
 
+/*TODO*/
+/* REPLACED NOT VERY RESPONSIVE */
 /* Responsive */
+/*
 @media (max-width: 1400px) {
   .game-area {
     flex-direction: column;
     align-items: center;
+  }
+}
+*/
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .game-area {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Mobile Specific Fixes (Add this!) */
+@media (max-width: 768px) {
+  /* 1. Shrink the big title */
+  .game-header h1 {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  /* 2. Force the panels to fit the screen width with a little breathing room */
+  .info-panel,
+  .game-area > * { /* This targets GameStats, GameCanvas, and InfoPanel */
+    width: 100%;
+    max-width: 100%;
+    min-width: 0; /* crucial for overriding rigid min-widths */
+    box-sizing: border-box;
+  }
+
+  /* 3. The Canvas Fix */
+  /* We use deep selector (>>> or :deep) because the canvas is inside a child component */
+  :deep(canvas) {
+    max-width: 100% !important;
+    height: auto !important; /* Maintains aspect ratio */
+    object-fit: contain;
   }
 }
 </style>
