@@ -434,15 +434,12 @@ function getPaddleColor(side) {
 /* REPLACED NOT VERY RESPONSIVE */
 /* Responsive */
 /*
-@media (max-width: 1400px) {
-  .game-area {
-    flex-direction: column;
-    align-items: center;
-  }
-}
-*/
 
-/* Responsive Design */
+/* ============================================================
+   RESPONSIVE & MOBILE STYLES
+   ============================================================ */
+
+/* 1. Tablet/Small Desktop: Stack columns vertically */
 @media (max-width: 1400px) {
   .game-area {
     flex-direction: column;
@@ -450,33 +447,83 @@ function getPaddleColor(side) {
   }
 }
 
-/* Mobile Specific Fixes (Add this!) */
+/* 2. Mobile Phones (The Critical Fix) */
 @media (max-width: 768px) {
-  /* 1. Shrink the big title */
+  /* Reduce the big outer gap */
+  .app-container {
+    gap: 10px;
+  }
+  
+  /* Shrink the header */
+  .game-header {
+    padding: 10px;
+  }
   .game-header h1 {
-    font-size: 28px;
-    line-height: 1.2;
+    font-size: 24px;
+    margin: 0;
   }
-
   .subtitle {
-    font-size: 14px;
+    display: none;
   }
 
-  /* 2. Force the panels to fit the screen width with a little breathing room */
-  .info-panel,
-  .game-area > * { /* This targets GameStats, GameCanvas, and InfoPanel */
+  /* REORDER: Put Canvas FIRST, Stats SECOND */
+  .game-area {
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    max-width: 100%;
-    min-width: 0; /* crucial for overriding rigid min-widths */
-    box-sizing: border-box;
+    margin: 0;
   }
 
-  /* 3. The Canvas Fix */
-  /* We use deep selector (>>> or :deep) because the canvas is inside a child component */
+  /* Target the Canvas Component (2nd child) -> Move to TOP */
+  .game-area > :nth-child(2) {
+    order: -1;
+    width: 100%;
+  }
+
+  /* Target the Stats Panel (1st child) -> Move below canvas */
+  .game-area > :nth-child(1) {
+    order: 0;
+    width: 100%;
+  }
+
+  /* Target the Info Panel (3rd child) -> Move to bottom */
+  .game-area > :nth-child(3) {
+    order: 1;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  /* HIDE CLUTTER in Info Panel */
+  /* We hide the first H3 (How to play) and the UL list */
+  .info-panel h3:nth-of-type(1),
+  .info-panel ul,
+  .info-panel h3:nth-of-type(2),
+  .info-panel .controls-info,
+  .info-panel .spectators-info {
+    display: none !important;
+  }
+
+  /* Make sure the Player List (3rd H3) stays visible */
+  .info-panel h3:nth-of-type(3) {
+    display: block !important;
+    font-size: 16px;
+    margin: 0 0 10px 0;
+    text-align: center;
+  }
+
+  /* Adjust the players list layout */
+  .players-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  /* FORCE CANVAS TO FIT */
   :deep(canvas) {
+    width: 100% !important;
     max-width: 100% !important;
-    height: auto !important; /* Maintains aspect ratio */
-    object-fit: contain;
+    height: auto !important;
+    aspect-ratio: 4/3; /* Maintain shape so it doesn't squash */
   }
 }
 </style>
