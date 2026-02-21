@@ -47,7 +47,7 @@ certs:
 
 dev: check-certs
 	@echo "🚀 Starting development environment..."
-	docker compose -f docker/compose.dev.yml up -d
+	docker-compose -f docker/compose.dev.yml up -d
 	@echo ""
 	@echo "✅ Development servers running:"
 	@echo "   Frontend: https://localhost:5173 (Vite + Hot Reload + HTTPS)"
@@ -58,14 +58,14 @@ dev: check-certs
 
 dev-down:
 	@echo "🛑 Stopping development containers..."
-	docker compose -f docker/compose.dev.yml down
+	docker-compose -f docker/compose.dev.yml down
 
 dev-logs:
-	docker compose -f docker/compose.dev.yml logs -f
+	docker-compose -f docker/compose.dev.yml logs -f
 
 dev-rebuild: check-certs
 	@echo "🔄 Rebuilding development environment..."
-	docker compose -f docker/compose.dev.yml up -d --build
+	docker-compose -f docker/compose.dev.yml up -d --build
 
 # ===========================================
 # PRODUCTION
@@ -73,7 +73,7 @@ dev-rebuild: check-certs
 
 prod: check-certs
 	@echo "🚀 Building and starting production environment..."
-	docker compose -f docker/compose.prod.yml up -d --build
+	docker-compose -f docker/compose.prod.yml up -d --build
 	@echo ""
 	@echo "✅ Production servers running:"
 	@echo "   Frontend: https://localhost (Nginx + SSL)"
@@ -82,14 +82,14 @@ prod: check-certs
 
 prod-down:
 	@echo "🛑 Stopping production containers..."
-	docker compose -f docker/compose.prod.yml down
+	docker-compose -f docker/compose.prod.yml down
 
 prod-logs:
-	docker compose -f docker/compose.prod.yml logs -f
+	docker-compose -f docker/compose.prod.yml logs -f
 
 prod-rebuild: check-certs
 	@echo "🔄 Rebuilding production environment..."
-	docker compose -f docker/compose.prod.yml up -d --build
+	docker-compose -f docker/compose.prod.yml up -d --build
 
 # ===========================================
 # UTILITIES
@@ -107,8 +107,8 @@ status:
 
 clean:
 	@echo "🧹 Cleaning all Docker resources..."
-	docker compose -f docker/compose.prod.yml down -v --rmi all 2>/dev/null || true
-	docker compose -f docker/compose.dev.yml down -v --rmi all 2>/dev/null || true
+	docker-compose -f docker/compose.prod.yml down -v --rmi all 2>/dev/null || true
+	docker-compose -f docker/compose.dev.yml down -v --rmi all 2>/dev/null || true
 	@echo "✅ Cleaned all containers, images, and volumes"
 
 # Alias per retrocompatibilità
