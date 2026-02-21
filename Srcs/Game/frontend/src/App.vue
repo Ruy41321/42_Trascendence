@@ -125,7 +125,7 @@
     <!-- Footer -->
     <footer class="game-footer">
       <p>
-        Made with Vue.js + Socket.IO | 
+        Made with Vue.js + WebSocket | 
         <span v-if="connected" class="status-connected">● Connected</span>
         <span v-else class="status-disconnected">○ Disconnected</span>
       </p>
