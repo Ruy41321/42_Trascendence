@@ -1,218 +1,294 @@
 /**
  * WEBSOCKET COMPOSABLE
  * 
- * Vue Composable for managing WebSocket connection with Socket.IO.
+ * Vue Composable for managing native WebSocket connection.
  * 
- * COMPOSABLE PATTERN:
- * - Reusable function that handles specific logic
- * - Returns refs/reactive and methods
- * - Can be used in any component
+ * PROTOCOL:
+ * All messages are JSON: { type: "<type>", payload: { ... } }
+ * 
+ * Client → Server:
+ *   { type: "joinLobby",    payload: { playerName } }
+ *   { type: "spectate",     payload: { name } }
+ *   { type: "startGame",    payload: { vsAI } }
+ *   { type: "move",         payload: { direction, inputId } }
+ *   { type: "voteAbandon",  payload: {} }
+ *   { type: "restartGame",  payload: {} }
+ * 
+ * Server → Client:
+ *   { type: "lobbyJoined",       payload: { name } }
+ *   { type: "lobbyUpdate",       payload: { players[], spectators[], canStart } }
+ *   { type: "playerAssigned",    payload: { playerId, side, name, roomId, gameStatus } }
+ *   { type: "spectatorAssigned", payload: { name } }
+ *   { type: "gameState",         payload: { ball, players[], ... } }
+ *   { type: "gameEvent",         payload: { type, data } }
+ *   { type: "error",             payload: { message, code } }
  * 
  * LIFECYCLE:
- * 1. setup() → create socket connection
- * 2. Attach event listeners
- * 3. onUnmounted() → cleanup and disconnect
+ * 1. setup() → create WebSocket connection
+ * 2. Attach message handler (JSON parse + type switch)
+ * 3. Auto-reconnect with exponential backoff
+ * 4. onUnmounted() → cleanup and close
  */
 
-import { ref, onUnmounted } from 'vue';
-import { io } from 'socket.io-client';
+import { ref, watch, onUnmounted } from 'vue';
 import { GAME_CONFIG } from '../config/gameConfig.js';
 
 export function useWebSocket() {
-  // Connection state
+  // ============================================================
+  // STATE
+  // ============================================================
+
   const connected = ref(false);
-  const myPlayer = ref(null);         // Player info when in game
-  const gameState = ref(null);        // Game state from server
-  const lastEvent = ref(null);        // Last event received
-  const isSpectator = ref(false);     // Whether client is spectating
-  const inLobby = ref(false);         // Whether client is in lobby
-  const lobbyState = ref({            // Lobby state
+  const myPlayer = ref(null);
+  const gameState = ref(null);
+  const lastEvent = ref(null);
+  const isSpectator = ref(false);
+  const inLobby = ref(false);
+  const lobbyState = ref({
     players: [],
     spectators: [],
     canStart: false,
   });
-  const myName = ref(null);           // Client's name
-  
-  // Create Socket.IO connection
-  const socket = io(GAME_CONFIG.SOCKET_URL, {
-    transports: ['websocket'],
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionAttempts: 5,
-  });
-  
+  const myName = ref(null);
+
+  // Input tracking
+  let inputId = 0;
+  let lastGameStatus = null;
+
+  // Reconnection state
+  let ws = null;
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
+  let intentionalClose = false;
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const BASE_RECONNECT_DELAY = 1000;
+
   // ============================================================
-  // EVENT LISTENERS
+  // WEBSOCKET CONNECTION
   // ============================================================
-  
+
   /**
-   * Connection established
+   * Create and connect WebSocket
    */
-  socket.on('connect', () => {
-    console.log('✅ WebSocket connected:', socket.id);
-    connected.value = true;
-  });
-  
-  /**
-   * Disconnection
-   */
-  socket.on('disconnect', (reason) => {
-    console.log('❌ WebSocket disconnected:', reason);
-    connected.value = false;
-  });
-  
-  /**
-   * Joined lobby successfully
-   */
-  socket.on('lobbyJoined', (data) => {
-    console.log('🎮 Joined lobby:', data);
-    inLobby.value = true;
-    isSpectator.value = false;
-    myName.value = data.name;
-  });
-  
-  /**
-   * Lobby state updated
-   */
-  socket.on('lobbyUpdate', (data) => {
-    console.log('📋 Lobby update:', data);
-    lobbyState.value = {
-      players: data.players || [],
-      spectators: data.spectators || [],
-      canStart: data.canStart || false,
-    };
-  });
-  
-  /**
-   * Server assigned player slot (game starting/reconnecting)
-   */
-  socket.on('playerAssigned', (data) => {
-    console.log('🎮 Player assigned:', data);
-    myPlayer.value = {
-      id: data.playerId,
-      side: data.side,
-      name: data.name,
-      roomId: data.roomId,
-    };
-    inLobby.value = false;
-    isSpectator.value = false;
-  });
-  
-  /**
-   * Assigned as spectator
-   */
-  socket.on('spectatorAssigned', (data) => {
-    console.log('👁️ Spectator assigned:', data);
-    isSpectator.value = true;
-    inLobby.value = false;
-    myPlayer.value = null;
-    myName.value = data.name;
-  });
-  
-  /**
-   * Receive game state from server (every tick = 60 times/sec)
-   */
-  socket.on('gameState', (state) => {
-    gameState.value = state;
-  });
-  
-  /**
-   * Special events (score, collision, gameOver, etc)
-   */
-  socket.on('gameEvent', (event) => {
-    console.log('🎯 Game Event:', event);
-    lastEvent.value = event;
-    
-    // Handle specific events
-    if (event.type === 'gameAbandoned' || event.type === 'gameReset') {
-      // Game reset to lobby
-      myPlayer.value = null;
-      inLobby.value = false;
-      isSpectator.value = false;
+  function connect() {
+    if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+      return;
     }
-    
-    if (event.type === 'gameStart') {
-      console.log(`🎮 Game started with ${event.data.playerCount} players`);
-    }
-    
-    if (event.type === 'gameOver') {
-      console.log(`🏆 Winner: Player ${event.data.winner}`);
-    }
-  });
-  
+
+    const url = GAME_CONFIG.SOCKET_URL;
+    console.log('🔌 Connecting to WebSocket:', url);
+    ws = new WebSocket(url);
+
+    ws.addEventListener('open', () => {
+      console.log('✅ WebSocket connected');
+      connected.value = true;
+      reconnectAttempts = 0;
+
+      // Re-join on reconnect if we had a name
+      if (myName.value) {
+        send('joinLobby', { playerName: myName.value });
+      }
+    });
+
+    ws.addEventListener('close', (event) => {
+      console.log('❌ WebSocket closed:', event.code, event.reason);
+      connected.value = false;
+
+      if (!intentionalClose) {
+        scheduleReconnect();
+      }
+    });
+
+    ws.addEventListener('error', (error) => {
+      console.error('❌ WebSocket error:', error);
+    });
+
+    ws.addEventListener('message', (event) => {
+      handleMessage(event.data);
+    });
+  }
+
   /**
-   * Server errors
+   * Schedule reconnection with exponential backoff
    */
-  socket.on('error', (error) => {
-    console.error('❌ Server error:', error);
-    lastEvent.value = { type: 'error', data: error };
-  });
-  
+  function scheduleReconnect() {
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      console.log('❌ Max reconnect attempts reached');
+      return;
+    }
+
+    const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts);
+    reconnectAttempts++;
+    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+
+    clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(() => {
+      connect();
+    }, delay);
+  }
+
+  // ============================================================
+  // MESSAGE HANDLING
+  // ============================================================
+
+  /**
+   * Parse and route incoming messages by type
+   */
+  function handleMessage(raw) {
+    let msg;
+    try {
+      msg = JSON.parse(raw);
+    } catch (e) {
+      console.error('❌ Failed to parse message:', raw);
+      return;
+    }
+
+    const { type, payload } = msg;
+
+    switch (type) {
+      case 'lobbyJoined':
+        console.log('🎮 Joined lobby:', payload);
+        inLobby.value = true;
+        isSpectator.value = false;
+        myName.value = payload.name;
+        break;
+
+      case 'lobbyUpdate':
+        console.log('📋 Lobby update:', payload);
+        lobbyState.value = {
+          players: payload.players || [],
+          spectators: payload.spectators || [],
+          canStart: payload.canStart || false,
+        };
+        break;
+
+      case 'playerAssigned':
+        console.log('🎮 Player assigned:', payload);
+        myPlayer.value = {
+          id: payload.playerId,
+          side: payload.side,
+          name: payload.name,
+          roomId: payload.roomId,
+        };
+        inLobby.value = false;
+        isSpectator.value = false;
+        break;
+
+      case 'spectatorAssigned':
+        console.log('👁️ Spectator assigned:', payload);
+        isSpectator.value = true;
+        inLobby.value = false;
+        myPlayer.value = null;
+        myName.value = payload.name;
+        break;
+
+      case 'gameState':
+        // Reset inputId when game status transitions to 'playing'
+        if (payload.status !== lastGameStatus) {
+          if (payload.status === 'playing') {
+            inputId = 0;
+          }
+          lastGameStatus = payload.status;
+        }
+        gameState.value = payload;
+        break;
+
+      case 'gameEvent':
+        console.log('🎯 Game Event:', payload);
+        lastEvent.value = payload;
+
+        if (payload.type === 'gameAbandoned' || payload.type === 'gameReset') {
+          myPlayer.value = null;
+          inLobby.value = false;
+          isSpectator.value = false;
+        }
+        if (payload.type === 'gameStart') {
+          console.log(`🎮 Game started with ${payload.data.playerCount} players`);
+        }
+        if (payload.type === 'gameOver') {
+          console.log(`🏆 Winner: Player ${payload.data.winner}`);
+        }
+        break;
+
+      case 'error':
+        console.error('❌ Server error:', payload);
+        lastEvent.value = { type: 'error', data: payload };
+        break;
+
+      default:
+        console.warn('⚠️ Unknown message type:', type, payload);
+    }
+  }
+
+  // ============================================================
+  // SEND HELPERS
+  // ============================================================
+
+  /**
+   * Send a JSON message to the server
+   */
+  function send(type, payload = {}) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.warn('⚠️ WebSocket not connected, cannot send:', type);
+      return;
+    }
+    ws.send(JSON.stringify({ type, payload }));
+  }
+
   // ============================================================
   // PUBLIC METHODS
   // ============================================================
-  
-  /**
-   * Join lobby with a name
-   */
+
   function joinLobby(playerName) {
     console.log('🎮 Joining lobby as:', playerName);
-    socket.emit('joinLobby', { playerName });
+    myName.value = playerName;
+    send('joinLobby', { playerName });
   }
-  
-  /**
-   * Join as spectator
-   */
+
   function spectate(name = null) {
     console.log('👁️ Joining as spectator');
-    socket.emit('spectate', { name });
+    send('spectate', { name });
   }
-  
-  /**
-   * Request game start (from lobby)
-   * @param {boolean} vsAI - If true, start game vs AI
-   */
+
   function startGame(vsAI = false) {
     console.log(`🎮 Requesting game start${vsAI ? ' vs AI' : ''}`);
-    socket.emit('startGame', { vsAI });
+    send('startGame', { vsAI });
   }
-  
+
   /**
-   * Send input to server
-   * @param {string} input - 'UP' | 'DOWN' | null
+   * Send player input (move) to server
+   * @param {string|null} direction - 'UP' | 'DOWN' | null (stop)
    */
-  function sendInput(input) {
-    socket.emit('playerInput', { input });
+  function sendInput(direction) {
+    send('move', { direction, inputId: inputId++ });
   }
-  
-  /**
-   * Vote to abandon current game
-   */
+
   function voteAbandon() {
     console.log('🗳️ Voting to abandon');
-    socket.emit('voteAbandon');
+    send('voteAbandon', {});
   }
-  
-  /**
-   * Request game restart
-   */
+
   function restartGame() {
-    socket.emit('restartGame');
+    send('restartGame', {});
   }
-  
-  /**
-   * Cleanup when component unmounts
-   */
+
+  // ============================================================
+  // LIFECYCLE
+  // ============================================================
+
+  // Connect immediately
+  connect();
+
   onUnmounted(() => {
-    // Check if socket is connected before disconnecting to avoid warning
-    if (socket.connected) {
-      console.log('🔌 Disconnecting socket...');
-      socket.disconnect();
-    } else {
-      console.log('🔌 Socket already disconnected, skipping cleanup');
+    intentionalClose = true;
+    clearTimeout(reconnectTimer);
+    if (ws) {
+      console.log('🔌 Closing WebSocket...');
+      ws.close();
+      ws = null;
     }
   });
-  
+
   // Return public API
   return {
     // State
@@ -224,7 +300,7 @@ export function useWebSocket() {
     inLobby,
     lobbyState,
     myName,
-    
+
     // Methods
     joinLobby,
     spectate,
@@ -232,8 +308,5 @@ export function useWebSocket() {
     sendInput,
     voteAbandon,
     restartGame,
-    
-    // Raw socket (for advanced cases)
-    socket,
   };
 }
