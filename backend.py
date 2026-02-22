@@ -198,7 +198,8 @@ class PongGameState:
             Player(2, "top"),
             Player(3, "bottom"),
         ]
-        self.spectators = []                        # list of spectator dicts
+        self.spectators = []        # list of spectator dicts , will be broadcasted to clients
+        self.spectator_connections: dict = {}       # maps ws -> name, keeps track of spectator WebSocket connections for disconnect handling            
         self.connections: Set[WebSocket] = set()    # set of all active WebSocket connections
 
     def get_free_slot(self) -> Optional["Player"]:
@@ -341,6 +342,36 @@ class PongGameState:
                     ],
                 })
                 return                              # stop checking after first winner found
+
+    async def reset(self):
+        """
+        Reset the entire game state back to waiting status.
+        Called after gameAbandoned or restartGame.
+        Resets ball, all player slots, tick counter and winner.
+        Does NOT clear connections — clients stay connected to the WebSocket,
+        they just need to send joinLobby again to re-enter the game.
+        """
+        self.status = "waiting"     # back to initial status
+        self.tick = 0               # reset tick counter
+        self.winner = None          # clear winner
+
+        self.ball.x = 0.5           # reset ball to center x
+        self.ball.y = 0.5           # reset ball to center y
+        self.ball.vx = 0.008        # reset ball horizontal velocity
+        self.ball.vy = 0.004        # reset ball vertical velocity
+
+        for p in self.players:                  # iterate all four slots
+            p.score = 0                         # reset score
+            p.connected = False                 # free the slot
+            p.name = "Anonymous"               # clear name
+            p.votedToAbandon = False           # clear abandon vote
+            p.current_direction = None         # stop any movement
+            p.last_processed_input_id = -1     # reset reconciliation counter
+
+            if p.side in ["left", "right"]:    # restore initial Y position for vertical paddles
+                p.y = 0.435
+            else:                              # restore initial X position for horizontal paddles
+                p.x = 0.435
 
     async def emit_event(self, event_type: str, data: dict):
         """
@@ -522,14 +553,36 @@ async def websocket_endpoint(ws: WebSocket):
 
             elif msg.type == "voteAbandon":
                 if player:
-                    player.votedToAbandon = True            # flag this player's abandon vote
+                    player.votedToAbandon = True                                   # flag this player's abandon vote
+                    connected = [p for p in game.players if p.connected]           # list comprehension: only active players
+                    votes = sum(1 for p in connected if p.votedToAbandon)          # generator expression: count votes
+                    if votes == len(connected):                                    # all connected players voted
+                        await game.reset()                                         # reset game state
+                        await game.emit_event("gameAbandoned", {                   # notify all clients
+                            "reason": "All players voted to abandon",              # reason string
+                        })   
 
+            elif msg.type == "spectate":
+                name = msg.payload.get("name", "Spectator")                 # get name from payload, default to "Spectator"
+                game.spectator_connections[ws] = name                       # register spectator ws -> name
+                game.spectators = [                                         # rebuild serializable spectators list
+                    {"name": n} for n in game.spectator_connections.values()  # list comprehension: only names for broadcast
+                ]
+                await send_to(ws, "spectatorAssigned", {"name": name})      # confirm to this client only
+                await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of new spectator
+            
             elif msg.type == "restartGame":
-                pass                                        # not yet implemented
+                await game.reset()                                          # reset all game state
+                await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of empty lobby                                     # not yet implemented
 
     except (WebSocketDisconnect, Exception):
         if player:
             player.connected = False            # free up the slot
             player.current_direction = None     # stop any ongoing movement
         game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
+        if ws in game.spectator_connections:                            # check if disconnected client was a spectator
+            del game.spectator_connections[ws]                          # remove key from spectator dict
+            game.spectators = [                                         # rebuild serializable list
+                {"name": n} for n in game.spectator_connections.values()
+            ]
         await broadcast("lobbyUpdate", game.get_lobby_state()) # then broadcast remaining clients that a player left
