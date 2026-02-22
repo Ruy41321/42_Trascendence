@@ -2,7 +2,7 @@ import asyncio                          # async/await event loop
 import json                             # JSON serialization/deserialization
 import time                             # time.time() for loop timing
 from contextlib import asynccontextmanager  # decorator for lifespan management
-from typing import Literal, Optional, Set   # type hints
+from typing import Literal, Optional, Set , Union   # type hints
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # web framework + WS support
 from pydantic import BaseModel          # data validation library
 
@@ -209,7 +209,7 @@ class PongGameState:
         """
         return next((p for p in self.players if not p.connected), None)  # generator expression
 
-    def update_physics(self):
+    async def update_physics(self):
         """
         Advance the game by one tick.
         Order matters: move ball first, then check collisions (so we can correct
@@ -218,7 +218,7 @@ class PongGameState:
         self.tick += 1          # increment tick counter
         self.ball.update()      # move ball by vx/vy
         self.check_collisions() # detect and resolve paddle-ball collisions
-        self.check_goal()       # detect if ball exited the field
+        await self.check_goal()       # detect if ball exited the field
         for player in self.players:  # move all paddles based on their current_direction
             player.move()
 
@@ -281,7 +281,7 @@ class PongGameState:
             relative_intersect = (ball.x - paddle_center) / player.width   # -0.5 to 0.5
             ball.vx += relative_intersect * 0.01                        # push vx based on impact point
 
-    def check_goal(self):
+    async def check_goal(self):
         """
         Detect if the ball has entirely exited the field (past any wall).
         Awards one point to all players except the loser.
@@ -313,6 +313,48 @@ class PongGameState:
 
         ball.reset()    # return ball to center with reversed direction
 
+        await self.emit_event("score", {    # notify all clients a goal was scored
+            "missedSide": loser_side,       # which side conceded
+            "scoringPlayers": [             # list comprehension: names of players who scored
+                {"id": p.id, "name": p.name, "score": p.score}
+                for p in self.players if p.side != loser_side
+            ],
+        })
+        await self.check_winner()
+    
+    async def check_winner(self):
+        """
+        Check if any player has reached the winning score (first to 5).
+        If so, set game status to finished, record the winner,
+        and broadcast a gameOver event.
+        Winning score is hardcoded to 5 — move to a config constant later.
+        """
+        for p in self.players:
+            if p.score >= 5:                        # winning condition
+                self.status = "finished"            # stop the game loop from advancing physics
+                self.winner = p.id                  # record winner id
+                await self.emit_event("gameOver", { # notify all clients
+                    "winner": p.id,                 # winner's slot id
+                    "finalScores": [                # list comprehension: all players' final scores
+                        {"id": pl.id, "name": pl.name, "score": pl.score}
+                        for pl in self.players
+                    ],
+                })
+                return                              # stop checking after first winner found
+
+    async def emit_event(self, event_type: str, data: dict):
+        """
+        Broadcast a gameEvent message to all connected clients.
+        gameEvent is a one-shot notification for discrete game moments
+        (score, gameStart, gameOver) as opposed to the continuous gameState broadcast.
+        data contains event-specific information defined per event_type.
+        """
+        await broadcast("gameEvent", {  # reuse broadcast utility for all clients
+            "type": event_type,         # event identifier: "score" | "gameStart" | "gameOver" | "gameAbandoned"| "gameReset"| "playerReconnected"
+            "data": data,               # event-specific payload
+        })       
+    
+    
     def get_payload(self) -> dict:
         """
         Build the full gameState message dict ready for json.dumps().
@@ -389,7 +431,7 @@ async def world_loop():
         start = time.time()                         # record tick start time
 
         if game.status == "playing":
-            game.update_physics()                   # advance ball and paddles
+            await game.update_physics()                   # advance ball and paddles
 
         payload_json = json.dumps(game.get_payload())   # serialize once for all clients
 
@@ -450,15 +492,15 @@ async def websocket_endpoint(ws: WebSocket):
 
             if msg.type == "joinLobby":
                 parsed = JoinLobbyPayload(**msg.payload)    # validate joinLobby-specific payload
-                player = game.get_free_slot()               # find first available slot
-                if player:
+                player = game.get_free_slot()               # find first available slot, returns player object or none
+                if player:                                  # if there is an available one
                     player.connected = True                 # mark slot as occupied
                     player.name = parsed.playerName         # set display name
                     await send_to(ws, "playerAssigned", {   # confirm assignment to this client
                         "playerId": player.id,
                         "side": player.side,
                         "name": player.name,
-                        "roomId": "main",
+                        "roomId": "main",                   # to be defined
                         "gameStatus": game.status,
                     })
                     await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
@@ -468,6 +510,9 @@ async def websocket_endpoint(ws: WebSocket):
             elif msg.type == "startGame":
                 parsed = StartGamePayload(**msg.payload)    # validate startGame payload
                 game.status = "playing"                     # transition game to playing state
+                await game.emit_event("gameStart", {            # notify all clients the game has started
+                    "playerCount": sum(1 for p in game.players if p.connected),  # generator expression: count connected players
+                })
 
             elif msg.type == "move":
                 parsed = MovePayload(**msg.payload)         # validate move payload
