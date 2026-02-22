@@ -335,6 +335,20 @@ class PongGameState:
             },
         }
 
+    def get_lobby_state(self) -> dict:
+        """
+        Build the lobby state dict broadcast to all clients after every joinLobby.
+        Contains the list of connected players, spectators, and canStart flag.
+        canStart is True when at least 2 players are connected — matches the
+        frontend's MIN_PLAYERS_TO_START logic in GameState.js canStartGame().
+        """
+        connected = [p for p in self.players if p.connected]   # list comprehension: only connected slots
+        return {
+            "players": [{"name": p.name} for p in connected],  # list comprehension: only name needed in lobby
+            "spectators": self.spectators,                      # spectator list (empty until implemented)
+            "canStart": len(connected) >= 2,                    # True when minimum players are present
+        }
+
 
 # =============================================================================
 # SERVER CORE
@@ -398,6 +412,20 @@ async def send_to(ws: WebSocket, type: str, payload: dict):
     await ws.send_text(json.dumps({"type": type, "payload": payload}))
 
 
+async def broadcast(type: str, payload: dict):
+    """
+    Utility: send a single typed JSON message to ALL connected clients.
+    Used for events that all clients need to receive simultaneously,
+    such as lobbyUpdate — as opposed to send_to which targets one client.
+    Reuses the same serialized string for all clients to avoid redundant work.
+    """
+    msg = json.dumps({"type": type, "payload": payload})    # serialize once for all recipients
+    if game.connections:
+        await asyncio.gather(                               # send concurrently to all clients
+            *[ws.send_text(msg) for ws in list(game.connections)]  # list comprehension unpacked into gather
+        )
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     """
@@ -407,7 +435,8 @@ async def websocket_endpoint(ws: WebSocket):
     'player' starts as None and is assigned when joinLobby is received —
     initialized here so the except block can safely reference it even if
     the client disconnects before sending joinLobby.
-    On disconnect or any exception, marks the player as disconnected and
+    On disconnect or any exception, marks the player as disconnected,
+    broadcasts the updated lobby state to remaining clients and
     removes the socket from the connections set.
     """
     await ws.accept()               # complete WebSocket handshake
@@ -432,6 +461,7 @@ async def websocket_endpoint(ws: WebSocket):
                         "roomId": "main",
                         "gameStatus": game.status,
                     })
+                    await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
                 else:
                     await send_to(ws, "error", {"message": "Lobby full", "code": "LOBBY_FULL"})
 
@@ -456,4 +486,5 @@ async def websocket_endpoint(ws: WebSocket):
         if player:
             player.connected = False            # free up the slot
             player.current_direction = None     # stop any ongoing movement
-        game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present)
+        game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
+        await broadcast("lobbyUpdate", game.get_lobby_state()) # then broadcast remaining clients that a player left
