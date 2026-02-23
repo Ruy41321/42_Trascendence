@@ -299,32 +299,50 @@ class PongGameState:
                 ball.y < -margin or ball.y > 1 + margin):
             return
 
-        # Determine which side lost based on where the ball exited
+        # Determine exit side
         if ball.x < 0:
-            loser_side = "left"
+            exit_side = "left"
         elif ball.x > 1:
-            loser_side = "right"
+            exit_side = "right"
         elif ball.y < 0:
-            loser_side = "top"
+            exit_side = "top"
         else:
-            loser_side = "bottom"
+            exit_side = "bottom"
 
-        # Award point to all players except the one who lost
-        for p in self.players:
-            if p.side != loser_side:    # everyone except the loser scores
-                p.score += 1
+        # Check if that side has a connected player
+        side_has_player = any(
+            p.side == exit_side and p.connected
+            for p in self.players
+        )                                           # generator expression: True if a connected player owns that side
 
-        ball.reset()    # return ball to center with reversed direction
+        if side_has_player:                         # goal: award points and reset ball
+            for p in self.players:
+                if p.side != exit_side:
+                    p.score += 1
+            ball.reset()
+            await self.emit_event("score", {
+                "missedSide": exit_side,
+                "scoringPlayers": [
+                    {"id": p.id, "name": p.name, "score": p.score}
+                    for p in self.players if p.side != exit_side
+                ],
+            })
+            await self.check_winner()
 
-        await self.emit_event("score", {    # notify all clients a goal was scored
-            "missedSide": loser_side,       # which side conceded
-            "scoringPlayers": [             # list comprehension: names of players who scored
-                {"id": p.id, "name": p.name, "score": p.score}
-                for p in self.players if p.side != loser_side
-            ],
-        })
-        await self.check_winner()
-    
+        else:                                       # no player on that side: bounce                                   
+            if exit_side == "left":
+                ball.vx = abs(ball.vx)              # force positive (ball goes right)
+                ball.x = ball.radius               # prevent tunneling : push ball just inside left wall
+            elif exit_side == "right":
+                ball.vx = -abs(ball.vx)            # force negative (ball goes left)
+                ball.x = 1 - ball.radius           # prevent tunneling : push ball just inside right wall
+            elif exit_side == "top":
+                ball.vy = abs(ball.vy)             # force positive (ball goes down)
+                ball.y = ball.radius               # prevent tunneling : push ball just inside top wall
+            elif exit_side == "bottom":
+                ball.vy = -abs(ball.vy)            # force negative (ball goes up)
+                ball.y = 1 - ball.radius           # prevent tunneling : push ball just inside bottom wall    
+                
     async def check_winner(self):
         """
         Check if any player has reached the winning score (first to 10).
