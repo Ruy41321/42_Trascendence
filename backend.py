@@ -579,10 +579,10 @@ async def websocket_endpoint(ws: WebSocket):
         if player:
             player.connected = False            # free up the slot
             player.current_direction = None     # stop any ongoing movement
-        game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
         if ws in game.spectator_connections:                            # check if disconnected client was a spectator
             del game.spectator_connections[ws]                          # remove key from spectator dict
             game.spectators = [                                         # rebuild serializable list
                 {"name": n} for n in game.spectator_connections.values()
             ]
+        game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
         await broadcast("lobbyUpdate", game.get_lobby_state()) # then broadcast remaining clients that a player left
