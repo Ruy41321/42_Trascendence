@@ -201,6 +201,8 @@ class PongGameState:
         self.spectators = []        # list of spectator dicts , will be broadcasted to clients
         self.spectator_connections: dict = {}       # maps ws -> name, keeps track of spectator WebSocket connections for disconnect handling            
         self.connections: Set[WebSocket] = set()    # set of all active WebSocket connections
+        self.lobby_queue: list = []  # list of dicts {"name": str, "ws": WebSocket} waiting for a slot
+        self.ws_to_player: dict = {}  # maps ws -> Player, used to promote queued clients on disconnect
 
     def get_free_slot(self) -> Optional["Player"]:
         """
@@ -325,13 +327,13 @@ class PongGameState:
     
     async def check_winner(self):
         """
-        Check if any player has reached the winning score (first to 5).
+        Check if any player has reached the winning score (first to 10).
         If so, set game status to finished, record the winner,
         and broadcast a gameOver event.
-        Winning score is hardcoded to 5 — move to a config constant later.
+        Winning score is hardcoded to 10 — move to a config constant later.
         """
         for p in self.players:
-            if p.score >= 5:                        # winning condition
+            if p.score >= 10:                        # winning condition
                 self.status = "finished"            # stop the game loop from advancing physics
                 self.winner = p.id                  # record winner id
                 await self.emit_event("gameOver", { # notify all clients
@@ -359,6 +361,8 @@ class PongGameState:
         self.ball.y = 0.5           # reset ball to center y
         self.ball.vx = 0.008        # reset ball horizontal velocity
         self.ball.vy = 0.004        # reset ball vertical velocity
+        self.lobby_queue.clear()    # clear waiting queue on reset
+        self.ws_to_player.clear()   # clear dict ws -> Player on reset
 
         for p in self.players:                  # iterate all four slots
             p.score = 0                         # reset score
@@ -385,7 +389,30 @@ class PongGameState:
             "data": data,               # event-specific payload
         })       
     
-    
+    async def promote_from_queue(self):
+        """
+        Promote the first client in lobby_queue to a free player slot.
+        Called when a player disconnects and frees a slot.
+        Sends playerAssigned to the promoted client and updates lobby.
+        """
+        if not self.lobby_queue:                        # nothing to promote
+            return
+        free_slot = self.get_free_slot()               # check if there is a free slot
+        if not free_slot:                              # no free slot available
+            return
+        entry = self.lobby_queue.pop(0)                # take first in queue — pop(0) removes and returns first element
+        free_slot.connected = True                     # mark slot as occupied
+        free_slot.name = entry["name"]                 # assign name
+        self.ws_to_player[entry["ws"]] = free_slot     # register new ws -> player mapping
+        await send_to(entry["ws"], "lobbyJoined", {"name": entry["name"]})  # notify promoted client he joined the lobby
+        await send_to(entry["ws"], "playerAssigned", { # notify promoted client he was assigned to a Player slot
+            "playerId": free_slot.id,
+            "side": free_slot.side,
+            "name": free_slot.name,
+            "roomId": "main",
+            "gameStatus": self.status,
+        })
+
     def get_payload(self) -> dict:
         """
         Build the full gameState message dict ready for json.dumps().
@@ -417,7 +444,8 @@ class PongGameState:
         """
         connected = [p for p in self.players if p.connected]   # list comprehension: only connected slots
         return {
-            "players": [{"name": p.name} for p in connected],  # list comprehension: only name needed in lobby
+            "players": [{"name": p.name} for p in connected] +  # list comprehension: name needed in lobby
+           [{"name": e["name"]} for e in self.lobby_queue],         # include queued players
             "spectators": self.spectators,                      # spectator list (empty until implemented)
             "canStart": len(connected) >= 2,                    # True when minimum players are present
         }
@@ -520,23 +548,42 @@ async def websocket_endpoint(ws: WebSocket):
         while True:
             data = await ws.receive_json()      # wait for next message, parsed as dict
             msg = ClientMessage(**data)         # validate envelope with Pydantic
+            player = game.ws_to_player.get(ws)  # always read current player from shared map, picks up promotions
 
             if msg.type == "joinLobby":
                 parsed = JoinLobbyPayload(**msg.payload)    # validate joinLobby-specific payload
-                player = game.get_free_slot()               # find first available slot, returns player object or none
-                if player:                                  # if there is an available one
-                    player.connected = True                 # mark slot as occupied
-                    player.name = parsed.playerName         # set display name
-                    await send_to(ws, "playerAssigned", {   # confirm assignment to this client
-                        "playerId": player.id,
-                        "side": player.side,
-                        "name": player.name,
-                        "roomId": "main",                   # to be defined
-                        "gameStatus": game.status,
+                # check for duplicate name among connected players and lobby queue
+                name_taken = any(                                    # any() with generator expression: True if at least one matches
+                    p.name == parsed.playerName and p.connected
+                    for p in game.players
+                ) or any(
+                    e["name"] == parsed.playerName
+                    for e in game.lobby_queue
+                )
+                if name_taken:                              # the name is a duplicate
+                    await send_to(ws, "error", {            # send duplicate error "name taken"
+                        "message": "Name already taken",
+                        "code": "NAME_TAKEN",
                     })
-                    await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
-                else:
-                    await send_to(ws, "error", {"message": "Lobby full", "code": "LOBBY_FULL"})
+                else:                                       # the name is not taken
+                    player = game.get_free_slot()               # find first available slot, returns player object or none
+                    if player:                                  # if there is an available one
+                        player.connected = True                 # mark slot as occupied
+                        player.name = parsed.playerName         # set display name
+                        game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion
+                        await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
+                        await send_to(ws, "playerAssigned", {   # confirm assignment to this client
+                            "playerId": player.id,
+                            "side": player.side,
+                            "name": player.name,
+                            "roomId": "main",                   # to be defined
+                            "gameStatus": game.status,
+                        })
+                        await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
+                    else:
+                        game.lobby_queue.append({"name": parsed.playerName, "ws": ws})  # add to waiting queue
+                        await send_to(ws, "lobbyJoined", {"name": parsed.playerName})    # confirm lobby entry
+                        await broadcast("lobbyUpdate", game.get_lobby_state())          # braodcasts the lobby state
 
             elif msg.type == "startGame":
                 parsed = StartGamePayload(**msg.payload)    # validate startGame payload
@@ -576,13 +623,16 @@ async def websocket_endpoint(ws: WebSocket):
                 await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of empty lobby                                     # not yet implemented
 
     except (WebSocketDisconnect, Exception):
-        if player:
+        if player:                              # check if disconnected client was a player
             player.connected = False            # free up the slot
             player.current_direction = None     # stop any ongoing movement
+        game.ws_to_player.pop(ws, None)                # remove ws -> player mapping, pop with None avoids KeyError
         if ws in game.spectator_connections:                            # check if disconnected client was a spectator
             del game.spectator_connections[ws]                          # remove key from spectator dict
             game.spectators = [                                         # rebuild serializable list
                 {"name": n} for n in game.spectator_connections.values()
             ]
         game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
+        game.lobby_queue = [e for e in game.lobby_queue if e["ws"] != ws]  # remove disconnected client from queue
+        await game.promote_from_queue()                # promote first in queue if slot is free
         await broadcast("lobbyUpdate", game.get_lobby_state()) # then broadcast remaining clients that a player left
