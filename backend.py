@@ -198,7 +198,7 @@ class PongGameState:
             Player(2, "top"),
             Player(3, "bottom"),
         ]
-        self.spectators = []        # list of spectator dicts , will be broadcasted to clients
+        self.spectators = []        # list of spectator dicts {"name" key : name value} , will be broadcasted to clients
         self.spectator_connections: dict = {}       # maps ws -> name, keeps track of spectator WebSocket connections for disconnect handling            
         self.connections: Set[WebSocket] = set()    # set of all active WebSocket connections
         self.lobby_queue: list = []  # list of dicts {"name": str, "ws": WebSocket} waiting for a slot
@@ -361,6 +361,7 @@ class PongGameState:
                         for pl in self.players
                     ],
                 })
+                # self.reset()                      # the game doesn't reset after the winnin condition, but stays "finished" until the frontend sends a restartGame payload
                 return                              # stop checking after first winner found
 
     async def reset(self):
@@ -418,7 +419,7 @@ class PongGameState:
         free_slot = self.get_free_slot()               # check if there is a free slot
         if not free_slot:                              # no free slot available
             return
-        entry = self.lobby_queue.pop(0)                # take first in queue — pop(0) removes and returns first element
+        entry = self.lobby_queue.pop(0)                # take first in queue — pop(0) removes and returns first element,a dict with {"name": str, "ws" : Websocket}
         free_slot.connected = True                     # mark slot as occupied
         free_slot.name = entry["name"]                 # assign name
         self.ws_to_player[entry["ws"]] = free_slot     # register new ws -> player mapping
@@ -448,7 +449,7 @@ class PongGameState:
                 "aiPlayerSlot": None,           # AI slot not yet implemented
                 "ball": self.ball.serialize(),  # ball position and velocity
                 "players": [p.serialize() for p in self.players],  # list comprehension: serialize all 4 slots in one line
-                "spectators": self.spectators,  # empty list, spectators not yet implemented
+                "spectators": self.spectators,  # list of spectators dicts {"name" : str}
                 "lobby": {"playersReady": []},  # lobby state, work in progress
             },
         }
@@ -647,7 +648,7 @@ async def websocket_endpoint(ws: WebSocket):
         game.ws_to_player.pop(ws, None)                # remove ws -> player mapping, pop with None avoids KeyError
         if ws in game.spectator_connections:                            # check if disconnected client was a spectator
             del game.spectator_connections[ws]                          # remove key from spectator dict
-            game.spectators = [                                         # rebuild serializable list
+            game.spectators = [                                         # rebuild serializable list iterating on values
                 {"name": n} for n in game.spectator_connections.values()
             ]
         game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
