@@ -12,9 +12,9 @@ if (existsSync(certPath) && existsSync(keyPath)) {
     cert: readFileSync(certPath),
     key: readFileSync(keyPath),
   }
-  console.log('🔒 HTTPS enabled')
+  console.log('HTTPS enabled')
 } else {
-  console.warn('⚠️  SSL certificates not found, running in HTTP mode')
+  console.warn('SSL certificates not found, running in HTTP mode')
 }
 
 // https://vitejs.dev/config/
@@ -24,5 +24,6 @@ export default defineConfig({
     port: 5173,
     host: true,
     https: httpsConfig,
+	//https: false, // <--- FORCE HTTP FOR PWA TESTING
   },
 })

@@ -18,8 +18,10 @@
   <div class="app-container">
     <!-- Header -->
     <header class="game-header">
-      <h1>🎮 PONG 4-PLAYER</h1>
+      <h1> PONG 4-PLAYER </h1>
       <p class="subtitle">Multiplayer Real-time Game</p>
+	<!-- PWA: BUTTON -->
+	<button v-if="showInstallButton" @click="installPWA" class="install-pwa-btn"> </button>
     </header>
     
     <!-- Main Game Area -->
@@ -141,6 +143,37 @@ import LobbyScreen from './components/LobbyScreen.vue';
 import { useWebSocket } from './composables/useWebSocket.js';
 import { useKeyboard } from './composables/useKeyboard.js';
 import { PADDLE_COLORS } from './config/gameConfig.js';
+
+/***************************************************************/
+/*                   PWA Install Logic                         */
+/***************************************************************/
+
+import { onMounted, onUnmounted } from 'vue';
+const deferredPrompt = ref(null);
+const showInstallButton = ref(false);
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later
+    deferredPrompt.value = e;
+    // Update UI notify the user they can install the PWA
+    showInstallButton.value = true;
+  });
+});
+async function installPWA() {
+  if (!deferredPrompt.value) return;
+
+  // Show the install prompt
+  deferredPrompt.value.prompt();
+  // Wait for the user to respond to the prompt
+  const { outcome } = await deferredPrompt.value.userChoice;
+  console.log(`User response to the install prompt: ${outcome}`);
+  // We've used the prompt, and can't use it again, discard it
+  deferredPrompt.value = null;
+  showInstallButton.value = false;
+}
+/***************************************************************/
 
 // ============================================================
 // COMPOSABLES
@@ -286,6 +319,32 @@ function getPaddleColor(side) {
   margin-top: 8px;
 }
 
+/**************************************/
+.install-pwa-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Hide on desktop, show only on mobile */
+@media (min-width: 769px) {
+  .install-pwa-btn {
+    display: none !important;
+  }
+}
+/**************************************/
 .game-area {
   display: flex;
   gap: 20px;
