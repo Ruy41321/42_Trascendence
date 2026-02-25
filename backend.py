@@ -4,7 +4,7 @@ import time                             # time.time() for loop timing
 from contextlib import asynccontextmanager  # decorator for lifespan management
 from typing import Literal, Optional, Set , Union   # type hints
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # web framework + WS support
-from pydantic import BaseModel          # data validation library
+from pydantic import BaseModel     # data validation library
 
 
 # =============================================================================
