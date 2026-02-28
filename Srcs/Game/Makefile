@@ -1,3 +1,4 @@
+SHELL := bash
 .PHONY: help dev dev-down dev-logs prod prod-down prod-logs logs clean rebuild certs
 
 # ===========================================
