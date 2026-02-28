@@ -405,6 +405,7 @@ class PongGameState:
         self.ball.vy = 0.004        # reset ball vertical velocity
         self.lobby_queue.clear()    # clear waiting queue on reset
         self.ws_to_player.clear()   # clear dict ws -> Player on reset
+        
 
         for p in self.players:                  # iterate all four slots
             p.score = 0                         # reset score
@@ -413,6 +414,8 @@ class PongGameState:
             p.votedToAbandon = False           # clear abandon vote
             p.current_direction = None         # stop any movement
             p.last_processed_input_id = -1     # reset reconciliation counter
+            p.token = None                     # reset jwt 
+            p.user_id = None                   # reset uuid
 
             if p.side in ["left", "right"]:    # restore initial Y position for vertical paddles
                 p.y = 0.435
