@@ -5,7 +5,8 @@ from contextlib import asynccontextmanager  # decorator for lifespan management
 from typing import Literal, Optional, Set , Union   # type hints
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # web framework + WS support
 from pydantic import BaseModel     # data validation library
-
+from jose import jwt               # jose is a python library used to work with jwt tokens
+import httpx
 
 # =============================================================================
 # INPUT VALIDATION with PYDANTIC
@@ -28,8 +29,8 @@ class MovePayload(BaseModel):
 
 class JoinLobbyPayload(BaseModel):
     """Payload for a 'joinLobby' message. Contains the player's chosen name."""
-    playerName: str
-
+    playerName: str              # name of the player to add to the lobby coming from the frontend
+    token: Optional[str] = None  # JWT from frontend for match recording
 
 class StartGamePayload(BaseModel):
     """Payload for a 'startGame' message. vsAI flag defaults to False."""
@@ -118,7 +119,9 @@ class Player:
         self.votedToAbandon = False     # True if this player has voted to abandon the game
         self.last_processed_input_id: int = -1          # last inputId received from this player, broadcasted for reconciliation
         self.current_direction: Optional[str] = None    # active movement direction, None = stopped.It's the same of Union[str, None] = None
-
+        self.token: Optional[str] = None      # JWT for auth-service calls
+        self.user_id: Optional[str] = None    # extracted from token payload
+        
         # Set paddle dimensions and initial position based on side.
         if side in ["left", "right"]: # Same for ball,purely placeholders that need to be validated in game
             self.width = 0.015                              # paddle thickness (normalized)
@@ -361,6 +364,26 @@ class PongGameState:
                         for pl in self.players
                     ],
                 })
+                async with httpx.AsyncClient() as client: # sends a POST reqeuest to the auth service for the match logging
+                    connected_players = [pl for pl in self.players if pl.connected]
+                    body = {    # in case of 2 players
+                        "player1_id": connected_players[0].user_id,
+                        "player2_id": connected_players[1].user_id,
+                        "winner_id": p.user_id,              # p is the loop winner
+                        "score_player1": connected_players[0].score,
+                        "score_player2": connected_players[1].score,
+                    }
+                    if len(connected_players) >= 3: # 3 players
+                        body["player3_id"] = connected_players[2].user_id
+                        body["score_player3"] = connected_players[2].score
+                    if len(connected_players) == 4: # 4 players
+                        body["player4_id"] = connected_players[3].user_id
+                        body["score_player4"] = connected_players[3].score
+                    await client.post(
+                        "http://auth-service:8000/api/v1/matches/", # API url
+                        json=body,
+                        headers={"Authorization": f"Bearer {p.token}"} # sends the winner's token to the auth service
+    )
                 # self.reset()                      # the game doesn't reset after the winnin condition, but stays "finished" until the frontend sends a restartGame payload
                 return                              # stop checking after first winner found
 
@@ -590,6 +613,10 @@ async def websocket_endpoint(ws: WebSocket):
                         player.connected = True                 # mark slot as occupied
                         player.name = parsed.playerName         # set display name
                         game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion
+                        player.token = parsed.token          # saves the jwt token
+                        if parsed.token:                     # verify if the frontend sent the token
+                            payload = jwt.decode(parsed.token, options={"verify_signature": False}) # decodes the token from base64 to a python dict without verifying the firm(my part of backend hasn't secret key)
+                            player.user_id = payload.get("sub")  # extract uuid from payload
                         await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
                         await send_to(ws, "playerAssigned", {   # confirm assignment to this client
                             "playerId": player.id,
