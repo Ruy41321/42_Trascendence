@@ -1,1 +1,10 @@
-/* Loading spinner */
+<template>
+
+</template>
+  
+<script setup>
+//Loading spinner vue
+</script>
+
+<style scoped>
+ </style>
