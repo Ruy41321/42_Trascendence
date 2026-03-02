@@ -30,7 +30,7 @@ defineEmits(['click']);
 
 
 <style scoped>
-/* Custom CSS: need to double check */
+/* TODO Custom CSS: need to double check */
 .base-button
 {
   padding: 13px 26px;
