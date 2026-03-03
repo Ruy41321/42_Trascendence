@@ -1,4 +1,4 @@
-/**
+/* *
  * GLOBAL STYLES
  * 
  * CSS globale applicato a tutta l'app
@@ -81,7 +81,7 @@ canvas:focus {
 }
 
 /* Buttons */
-button {
+/* button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
@@ -107,7 +107,7 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-}
+} */
 
 /* Status indicator */
 .status {

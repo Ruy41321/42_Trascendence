@@ -44,11 +44,11 @@ defineEmits(['click']);
   letter-spacing: 1px;
 }
 
-/* Primary Variant (Neon Blue) */
+/* Primary Variant TODO:check colors */
 .base-button.primary
 {
-  background:  #0099cc;
-  color: white;
+  background:  purple;
+  color: pink;
   box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
 }
 .base-button.primary:hover:not(:disabled)
@@ -57,12 +57,12 @@ defineEmits(['click']);
   box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
 }
 
-/* Secondary Variant (Dark/Outlined) */
+/* Secondary Variant TODO:check colors */
 .base-button.secondary
 {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(black);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 5px solid rgba(255, 255, 255, 0.3);
 }
 .base-button.secondary:hover:not(:disabled)
 {
@@ -73,7 +73,7 @@ defineEmits(['click']);
 /* Disabled State */
 .base-button:disabled
 {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
   transform: none;
 }

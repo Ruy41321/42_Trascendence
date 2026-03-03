@@ -11,29 +11,26 @@
 
 <template>
   <div class="game-stats">
-    <!-- Connection Status -->
+
     <div class="stat-item">
       <span class="label">Connection:</span>
       <span :class="['status', connected ? 'connected' : 'disconnected']">
-        {{ connected ? 'Connected ✓' : 'Disconnected ✗' }}
+        {{ connected ? 'Connected' : 'Disconnected' }}
       </span>
     </div>
-    
-    <!-- Spectator Info -->
     <div v-if="isSpectator" class="stat-item spectator-info">
       <span class="label">Mode:</span>
-      <span class="value spectator-badge">👁️ Spectator</span>
+      <span class="value spectator-badge">Spectator</span>
     </div>
-    
-    <!-- Player Info -->
-    <div v-else-if="myPlayer" class="stat-item">
+	<div v-else-if="myPlayer" class="stat-item">
       <span class="label">You are:</span>
-      <span class="value player-info">
-        {{ myPlayer.name || `Player ${myPlayer.id + 1}` }} ({{ getSideLabel(myPlayer.side) }})
-      </span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <UserAvatar :name="myPlayer.name || `Player ${myPlayer.id + 1}`" size="sm" />
+        <span class="value player-info">
+          {{ myPlayer.name || `Player ${myPlayer.id + 1}` }} ({{ getSideLabel(myPlayer.side) }})
+        </span>
+      </div>
     </div>
-    
-    <!-- Keyboard Controls -->
     <div v-if="myPlayer && !isSpectator" class="stat-item controls">
       <span class="label">Controls:</span>
       <div class="keys">
@@ -42,63 +39,39 @@
         <kbd>{{ getKeyLabel('DOWN') }}</kbd>
       </div>
     </div>
-    
-    <!-- Game Status -->
     <div v-if="gameState" class="stat-item">
       <span class="label">Status:</span>
       <span :class="['status', gameState.status]">
         {{ getStatusLabel(gameState.status) }}
       </span>
     </div>
-    
-    <!-- Connected Players Count -->
     <div v-if="gameState" class="stat-item">
       <span class="label">Players:</span>
       <span class="value">
         {{ connectedPlayersCount }}/{{ gameState.activePlayerCount || 4 }}
       </span>
     </div>
-    
-    <!-- Abandon Vote Progress -->
     <div v-if="showAbandonVotes" class="stat-item abandon-votes">
       <span class="label">Abandon Votes:</span>
       <span class="value">
         {{ abandonVoteCount }}/{{ connectedPlayersCount }}
       </span>
     </div>
-    
-    <!-- Buttons -->
+
+	<!-- REFACTORING: USING CUSTOM COMPONENTS -->
     <div class="button-group">
-      <!-- Restart Button (when finished) -->
-      <button 
-        v-if="gameState?.status === 'finished'" 
-        @click="$emit('restart')"
-        class="btn restart-btn"
-      >
-        🔄 Play Again
-      </button>
-      
-      <!-- Vote Abandon Button (when playing/paused, not spectator) -->
-      <button 
-        v-if="canVoteAbandon && !hasVoted"
-        @click="$emit('vote-abandon')"
-        class="btn abandon-btn"
-      >
-        🚪 Vote to Abandon
-      </button>
-      
-      <div v-if="hasVoted" class="voted-badge">
-        ✓ You voted to abandon
-      </div>
-      
-      <!-- Back to Lobby Button (spectators or after game ends) -->
-      <button 
-        v-if="isSpectator || gameState?.status === 'finished'"
-        @click="$emit('back-to-lobby')"
-        class="btn lobby-btn"
-      >
-        ← Back to Lobby
-      </button>
+	  <div class="button-group">
+      <BaseButton v-if="gameState?.status === 'finished'" variant="primary" @click="$emit('restart')"> Play Again
+      </BaseButton>
+      <BaseButton v-if="canVoteAbandon && !hasVoted" variant="danger" @click="isAbandonModalOpen = true"> Vote to Abandon
+      </BaseButton>
+      <div v-if="hasVoted" class="voted-badge">You voted to abandon</div>
+      <BaseButton v-if="isSpectator || gameState?.status === 'finished'" variant="secondary" @click="$emit('back-to-lobby')"> Back to Lobby
+      </BaseButton>
+    </div> 
+    <ModalDialog :isOpen="isAbandonModalOpen" title="Abandon Match?" @close="isAbandonModalOpen = false" @confirm="handleConfirmAbandon">
+      <p>Are you sure you want to vote to abandon the game? If the majority agrees, the match will end immediately.</p>
+    </ModalDialog>
     </div>
   </div>
 </template>
@@ -106,6 +79,17 @@
 <script setup>
 import { computed } from 'vue';
 import { GAME_CONFIG } from '../config/gameConfig.js';
+import { ref } from 'vue';
+import UserAvatar from './UserAvatar.vue';
+import ModalDialog from './ModalDialog.vue';
+import BaseButton from './BaseButton.vue';
+
+const isAbandonModalOpen = ref(false);
+function handleConfirmAbandon()
+{
+  isAbandonModalOpen.value = false;
+  emit('vote-abandon');
+}
 
 // ============================================================
 // PROPS & EMITS
@@ -285,46 +269,7 @@ kbd {
   margin-top: 16px;
 }
 
-.btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
 
-.restart-btn {
-  background: linear-gradient(135deg, #00d4ff, #0099cc);
-  color: white;
-}
-
-.restart-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
-}
-
-.abandon-btn {
-  background: rgba(255, 0, 110, 0.2);
-  color: #ff006e;
-  border: 2px solid #ff006e;
-}
-
-.abandon-btn:hover {
-  background: rgba(255, 0, 110, 0.3);
-}
-
-.lobby-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.lobby-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
 
 .voted-badge {
   padding: 8px;

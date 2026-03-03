@@ -34,18 +34,23 @@
       @touchcancel="handleTouchEnd"
     />
     
-    <!-- Overlay for non-playing status -->
-    <div v-if="overlayText" class="overlay">
+	<!--REFACTORING: USING THE COMPONENTS -->
+	<div v-if="overlayText" class="overlay">
+      <LoadingSpinner v-if="['lobby', 'waiting'].includes(gameState?.status) || !gameState"  size="lg" style="margin-bottom: 20px;" />
       <h2>{{ overlayText }}</h2>
       <div v-if="showCountdown" class="countdown">{{ countdown }}</div>
-      <p v-if="isSpectator" class="spectator-hint">👁️ You are spectating</p>
+      <GameBadge v-if="isSpectator" variant="warning" style="margin-top: 20px;"> You are spectating</GameBadge>
     </div>
   </div>
+
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { GAME_CONFIG, PADDLE_COLORS } from '../config/gameConfig.js';
+
+import GameBadge from './GameBadge.vue';
+import LoadingSpinner from './LoadingSpinner.vue';
 
 // ============================================================
 // PROPS
@@ -578,11 +583,7 @@ canvas {
   animation: pulse 1s infinite;
 }
 
-.spectator-hint {
-  margin-top: 20px;
-  font-size: 18px;
-  color: #ffbe0b;
-}
+
 
 @keyframes pulse {
   0%, 100% {
