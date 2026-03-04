@@ -11,3 +11,16 @@ import './style.css'
 
 // Crea e monta app Vue
 createApp(App).mount('#app')
+
+//PWA: progressive web app
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/worker.js')
+      .then(registration => {
+        console.log('DEBUG: ServiceWorker registered successfully with scope: ', registration.scope);
+      })
+      .catch(err => {
+        console.log('DEBUG: ServiceWorker registration failed: ', err);
+      });
+  });
+}
