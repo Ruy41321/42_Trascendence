@@ -25,8 +25,8 @@ export default defineConfig({
     host: true,
     https: httpsConfig,
     proxy: {
-      // Proxy WebSocket: wss://localhost:5173/ws -> ws://backend:PORT/ws
-      // BACKEND_HOST is the Docker service name (pong-backend-dev in Docker network)
+      // Proxy WebSocket: wss://localhost:5173/ws -> ws://game-service:PORT/ws
+      // BACKEND_HOST is the Docker service name (pong-game-service-dev in Docker network)
       '/ws': {
         target: `http://${process.env.BACKEND_HOST || 'localhost'}:${process.env.VITE_PORT || 3000}`,
         ws: true,

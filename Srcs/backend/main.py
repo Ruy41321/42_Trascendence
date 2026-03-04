@@ -1,5 +1,6 @@
 import asyncio                          # async/await event loop
 import json                             # JSON serialization/deserialization
+import os                               # environment variables
 import time                             # time.time() for loop timing
 from contextlib import asynccontextmanager  # decorator for lifespan management
 from typing import Literal, Optional, Set , Union   # type hints
@@ -380,8 +381,10 @@ class PongGameState:
                         if len(connected_players) == 4: # 4 players
                             body["player4_id"] = connected_players[3].user_id
                             body["score_player4"] = connected_players[3].score
+                        _auth_host = os.getenv("AUTH_SERVICE_HOST", "auth-service")
+                        _auth_port = os.getenv("AUTH_SERVICE_INTERNAL_PORT", "8000")
                         await client.post(
-                            "http://auth-service:8000/api/v1/matches/", # API url
+                            f"http://{_auth_host}:{_auth_port}/api/v1/matches/", # API url
                             json=body,
                             headers={"Authorization": f"Bearer {p.token}"} # sends the winner's token to the auth service
                         )

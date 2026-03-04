@@ -113,25 +113,27 @@ endif
 
 dev: check-certs
 	@echo "🚀 Starting development environment..."
-	docker-compose -f docker/compose.dev.yml up -d
+	docker-compose -f docker/compose.dev.yml --env-file .env up -d
 	@echo ""
 	@echo "✅ Development servers running:"
-	@echo "   Frontend: https://localhost:5173 (Vite + Hot Reload + HTTPS)"
-	@echo "   Backend:  wss://localhost:3000 (WebSocket Secure)"
+	@echo "   Frontend:     https://localhost:5173 (Vite + Hot Reload + HTTPS)"
+	@echo "   Game Service: wss://localhost:3000 (WebSocket Secure)"
+	@echo "   Auth Service: http://localhost:8001 (REST API)"
+	@echo "   PostgreSQL:   localhost:5433"
 	@echo ""
 	@echo "⚠️  Browser may warn about self-signed certificate - click 'Advanced' → 'Proceed'"
 	@echo ""
 
 dev-down:
 	@echo "🛑 Stopping development containers..."
-	docker-compose -f docker/compose.dev.yml down
+	docker-compose -f docker/compose.dev.yml --env-file .env down
 
 dev-logs:
-	docker-compose -f docker/compose.dev.yml logs -f
+	docker-compose -f docker/compose.dev.yml --env-file .env logs -f
 
 dev-rebuild: check-certs
 	@echo "🔄 Rebuilding development environment..."
-	docker-compose -f docker/compose.dev.yml up -d --build
+	docker-compose -f docker/compose.dev.yml --env-file .env up -d --build
 
 # ===========================================
 # PRODUCTION
@@ -139,23 +141,25 @@ dev-rebuild: check-certs
 
 prod: check-certs
 	@echo "🚀 Building and starting production environment..."
-	docker-compose -f docker/compose.prod.yml up -d --build
+	docker-compose -f docker/compose.prod.yml --env-file .env up -d --build
 	@echo ""
 	@echo "✅ Production servers running:"
-	@echo "   Frontend: https://localhost (Nginx + SSL)"
-	@echo "   Backend:  wss://localhost:3000 (WebSocket Secure)"
+	@echo "   Frontend:     https://localhost (Nginx + SSL)"
+	@echo "   Game Service: wss://localhost:3000 (WebSocket Secure)"
+	@echo "   Auth Service: http://localhost:8001 (REST API)"
+	@echo "   PostgreSQL:   localhost:5433"
 	@echo ""
 
 prod-down:
 	@echo "🛑 Stopping production containers..."
-	docker-compose -f docker/compose.prod.yml down
+	docker-compose -f docker/compose.prod.yml --env-file .env down
 
 prod-logs:
-	docker-compose -f docker/compose.prod.yml logs -f
+	docker-compose -f docker/compose.prod.yml --env-file .env logs -f
 
 prod-rebuild: check-certs
 	@echo "🔄 Rebuilding production environment..."
-	docker-compose -f docker/compose.prod.yml up -d --build
+	docker-compose -f docker/compose.prod.yml --env-file .env up -d --build
 
 # ===========================================
 # UTILITIES
@@ -187,12 +191,12 @@ endif
 
 status:
 	@echo "📊 Container status:"
-	@docker ps --filter "name=pong" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@docker ps --filter "name=pong" --filter "name=transcendence" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 clean:
 	@echo "🧹 Cleaning all Docker resources..."
-	docker-compose -f docker/compose.prod.yml down -v --rmi all 2>/dev/null || true
-	docker-compose -f docker/compose.dev.yml down -v --rmi all 2>/dev/null || true
+	docker-compose -f docker/compose.prod.yml --env-file .env down -v --rmi all 2>/dev/null || true
+	docker-compose -f docker/compose.dev.yml --env-file .env down -v --rmi all 2>/dev/null || true
 	@echo "✅ Cleaned all containers, images, and volumes"
 
 # Alias per retrocompatibilità

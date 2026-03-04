@@ -1,0 +1,127 @@
+# ===========================================
+# PRODUCTION DOCKER COMPOSE
+# ===========================================
+# Usage: docker compose -f docker/compose.prod.yml up -d
+# Or:    make prod
+#
+# Features:
+#   - HTTPS enabled (SSL certificates required)
+#   - Optimized builds (minified, tree-shaking)
+#   - Nginx serves static files over HTTPS
+#   - Health checks enabled
+#   - No source code mounted (baked into images)
+#
+# Network topology:
+#   app-network:  frontend <-> game-service <-> auth-service
+#   db-network:   auth-service <-> postgres
+
+services:
+  # ── DATABASE ──────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: transcendence-postgres
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - db-network
+
+  # ── AUTH SERVICE ──────────────────────────────────
+  auth-service:
+    build:
+      context: ../backend/auth-service
+      dockerfile: ../../docker/prod/auth.Dockerfile
+    container_name: transcendence-auth
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      API_V1_STR: ${API_V1_STR}
+      PROJECT_NAME: ${PROJECT_NAME}
+      VERSION: ${VERSION}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+      - db-network
+
+  # ── GAME SERVICE (WebSocket backend) ──────────────
+  game-service:
+    build:
+      context: ../Srcs/backend
+      dockerfile: ../../docker/prod/backend.Dockerfile
+      args:
+        - PORT=${GAME_SERVICE_PORT:-3000}
+    container_name: pong-game-service
+    ports:
+      - "${GAME_SERVICE_PORT:-3000}:${GAME_SERVICE_PORT:-3000}"
+    environment:
+      - PORT=${GAME_SERVICE_PORT:-3000}
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_INTERNAL_PORT=${AUTH_SERVICE_INTERNAL_PORT:-8000}
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      - auth-service
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ── FRONTEND ──────────────────────────────────────
+  frontend:
+    build:
+      context: ../Srcs/frontend
+      dockerfile: ../../docker/prod/frontend.Dockerfile
+      args:
+        - VITE_PORT=${GAME_SERVICE_PORT:-3000}
+    container_name: pong-frontend
+    ports:
+      - "${FRONTEND_PROD_HTTP_PORT:-80}:80"
+      - "${FRONTEND_PROD_HTTPS_PORT:-443}:443"
+    environment:
+      - GAME_SERVICE_HOST=game-service
+      - GAME_SERVICE_INTERNAL_PORT=${GAME_SERVICE_PORT:-3000}
+    volumes:
+      - ./certs:/etc/nginx/ssl:ro
+    depends_on:
+      game-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
+  db-network:
+    driver: bridge
