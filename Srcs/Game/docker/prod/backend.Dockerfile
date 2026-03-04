@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -6,21 +6,19 @@ WORKDIR /app
 ARG PORT=3000
 ENV PORT=$PORT
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY src ./src
+COPY . .
 
 # Expose WebSocket port
 EXPOSE $PORT
 
-# Health check (uses PORT env var)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + process.env.PORT, (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:' + '$PORT' + '/docs')"
 
-# Start server
-CMD ["node", "src/server.js"]
+# Start FastAPI with uvicorn (production mode, no reload)
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]

@@ -22,13 +22,10 @@ services:
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     environment:
-      - NODE_ENV=development
       - PORT=${PORT:-3000}
-    env_file:
-      - ../.env
     volumes:
-      - ../backend/src:/app/src:ro
-      - ../backend/package.json:/app/package.json:ro
+      - ../backend/main.py:/app/main.py
+      - ../backend/requirements.txt:/app/requirements.txt:ro
       - ./certs:/app/certs:ro
     restart: unless-stopped
     networks:
@@ -45,8 +42,7 @@ services:
       - "5173:5173"
     environment:
       - VITE_PORT=${PORT:-3000}
-    env_file:
-      - ../.env
+      - BACKEND_HOST=pong-backend-dev
     volumes:
       - ../frontend/src:/app/src:ro
       - ../frontend/index.html:/app/index.html:ro

@@ -24,10 +24,7 @@ services:
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     environment:
-      - NODE_ENV=production
       - PORT=${PORT:-3000}
-    env_file:
-      - ../.env
     volumes:
       - ./certs:/app/certs:ro
     restart: unless-stopped
@@ -40,8 +37,6 @@ services:
       dockerfile: ../docker/prod/frontend.Dockerfile
       args:
         - VITE_PORT=${PORT:-3000}
-    env_file:
-      - ../.env
     container_name: pong-frontend
     ports:
       - "80:80"

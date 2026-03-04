@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -6,17 +6,15 @@ WORKDIR /app
 ARG PORT=3000
 ENV PORT=$PORT
 
-# Copy package files
-COPY package*.json ./
-
-# Install all dependencies (including dev)
-RUN npm install
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY src ./src
+COPY . .
 
 # Expose WebSocket port
 EXPOSE $PORT
 
-# Start server with hot reload
-CMD ["npm", "run", "dev"]
+# Start FastAPI with uvicorn (hot reload enabled for dev)
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT --reload"]

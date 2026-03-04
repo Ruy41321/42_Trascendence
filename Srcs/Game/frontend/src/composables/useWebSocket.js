@@ -170,7 +170,6 @@ export function useWebSocket() {
           name: payload.name,
           roomId: payload.roomId,
         };
-        inLobby.value = false;
         isSpectator.value = false;
         break;
 
@@ -203,6 +202,7 @@ export function useWebSocket() {
           isSpectator.value = false;
         }
         if (payload.type === 'gameStart') {
+          inLobby.value = false;  // Transition out of lobby when game begins
           console.log(`🎮 Game started with ${payload.data.playerCount} players`);
         }
         if (payload.type === 'gameOver') {

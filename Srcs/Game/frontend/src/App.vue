@@ -88,7 +88,7 @@
 	const status = gameState.value?.status;
 	
 	// Show lobby if the server says we're in lobby mode
-	if (status === 'lobby') return true;
+	if (status === 'lobby' || status === 'waiting') return true;
 	
 	// Show lobby if the user hasn't identified themselves yet
 	if (!myPlayer.value && !isSpectator.value && !inLobby.value) return true;

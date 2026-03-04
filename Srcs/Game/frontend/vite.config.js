@@ -12,9 +12,9 @@ if (existsSync(certPath) && existsSync(keyPath)) {
     cert: readFileSync(certPath),
     key: readFileSync(keyPath),
   }
-  console.log('HTTPS enabled')
+  console.log('🔒 HTTPS enabled')
 } else {
-  console.warn('SSL certificates not found, running in HTTP mode')
+  console.warn('⚠️  SSL certificates not found, running in HTTP mode')
 }
 
 // https://vitejs.dev/config/
@@ -24,6 +24,14 @@ export default defineConfig({
     port: 5173,
     host: true,
     https: httpsConfig,
-	//https: false, // <--- FORCE HTTP FOR PWA TESTING
+    proxy: {
+      // Proxy WebSocket: wss://localhost:5173/ws -> ws://backend:PORT/ws
+      // BACKEND_HOST is the Docker service name (pong-backend-dev in Docker network)
+      '/ws': {
+        target: `http://${process.env.BACKEND_HOST || 'localhost'}:${process.env.VITE_PORT || 3000}`,
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 })

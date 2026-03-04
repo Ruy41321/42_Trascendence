@@ -12,11 +12,10 @@ export const GAME_CONFIG = {
   CANVAS_WIDTH: 800,
   CANVAS_HEIGHT: 600,
   
-  // WebSocket connection
-  // Dynamic: uses client's hostname and protocol (works for localhost, LAN, WAN)
-  // Automatically uses WSS when page is served over HTTPS
-  // Port is read from VITE_PORT env var (default 3000)
-  SOCKET_URL: `${wsProtocol}//${window.location.hostname}:${import.meta.env.VITE_PORT || 3000}`,
+  // WebSocket connection via Vite proxy: same host and port as the page.
+  // Vite proxies /ws → backend, handling SSL termination so the backend
+  // can stay plain HTTP while the browser connects over wss:// on HTTPS pages.
+  SOCKET_URL: `${wsProtocol}//${window.location.host}/ws`,
   
   // Colors (frontend only)
   COLORS: {
