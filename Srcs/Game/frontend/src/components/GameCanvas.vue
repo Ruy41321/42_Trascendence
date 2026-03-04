@@ -170,24 +170,32 @@ function updateInterpolatedBall() {
 function syncBallWithServer(serverBall) {
   if (!serverBall) return;
   
-  // Update velocity from server (authoritative)
-  interpolatedBall.vx = serverBall.vx || 0;
-  interpolatedBall.vy = serverBall.vy || 0;
-  interpolatedBall.radius = serverBall.radius;
+  // Backend sends normalized coordinates (0-1) and per-tick velocities.
+  // Convert to pixel coordinates and per-second velocities for rendering.
+  const TICK_RATE = 60;
+  
+  // Update velocity: normalized per-tick → pixel per-second
+  interpolatedBall.vx = (serverBall.vx || 0) * canvasWidth * TICK_RATE;
+  interpolatedBall.vy = (serverBall.vy || 0) * canvasHeight * TICK_RATE;
+  interpolatedBall.radius = (serverBall.radius || 0.013) * canvasWidth;
+  
+  // Convert normalized position to pixels
+  const serverX = (serverBall.x || 0) * canvasWidth;
+  const serverY = (serverBall.y || 0) * canvasHeight;
   
   // Snap to server position if difference is too large (>30px = missed collision/reset)
-  const dx = serverBall.x - interpolatedBall.x;
-  const dy = serverBall.y - interpolatedBall.y;
+  const dx = serverX - interpolatedBall.x;
+  const dy = serverY - interpolatedBall.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
   
   if (distance > 30) {
     // Teleport to server position (ball was reset or collision missed)
-    interpolatedBall.x = serverBall.x;
-    interpolatedBall.y = serverBall.y;
+    interpolatedBall.x = serverX;
+    interpolatedBall.y = serverY;
   } else {
     // Smoothly blend toward server position (90% server, 10% interpolated)
-    interpolatedBall.x = interpolatedBall.x * 0.1 + serverBall.x * 0.9;
-    interpolatedBall.y = interpolatedBall.y * 0.1 + serverBall.y * 0.9;
+    interpolatedBall.x = interpolatedBall.x * 0.1 + serverX * 0.9;
+    interpolatedBall.y = interpolatedBall.y * 0.1 + serverY * 0.9;
   }
   
   lastBallUpdate = Date.now();
@@ -273,8 +281,13 @@ function drawPaddles(players) {
       ctx.value.shadowColor = PADDLE_COLORS[player.side];
     }
     
-    // Draw paddle
-    ctx.value.fillRect(player.x, player.y, player.width, player.height);
+    // Draw paddle — convert normalized coordinates (0-1) to pixels
+    ctx.value.fillRect(
+      player.x * canvasWidth,
+      player.y * canvasHeight,
+      player.width * canvasWidth,
+      player.height * canvasHeight
+    );
     
     // Reset shadow
     ctx.value.shadowBlur = 0;
