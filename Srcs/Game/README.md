@@ -24,27 +24,18 @@ First player to reach **10 points** wins. Points are scored when an opponent mis
 ```
 Game/
 ├── Makefile                 # Docker commands
-├── backend/                 # Node.js server
-│   └── src/
-│       ├── server.js        # Entry point + WebSocket + Game Loop
-│       ├── config/
-│       │   └── gameConfig.js    # Game constants
-│       ├── models/
-│       │   └── GameState.js     # Game state data structure
-│       └── services/
-│           ├── GameService.js   # Game orchestration
-│           ├── PhysicsService.js    # Movement + velocity
-│           ├── CollisionService.js  # Collision detection
-│           └── AIService.js         # AI opponent logic
+├── backend/                 # Python/FastAPI server
+│   ├── main.py              # Entry point: WebSocket handler, game loop, game logic
+│   └── requirements.txt     # Python dependencies
 │
 ├── frontend/                # Vue.js client
 │   └── src/
 │       ├── main.js          # Vue entry point
 │       ├── App.vue          # Root component
 │       ├── config/
-│       │   └── gameConfig.js    # Frontend config (mirrors backend)
+│       │   └── gameConfig.js    # Frontend config
 │       ├── composables/
-│       │   ├── useWebSocket.js  # Socket.IO client logic
+│       │   ├── useWebSocket.js  # WebSocket client logic
 │       │   └── useKeyboard.js   # Keyboard input handling
 │       └── components/
 │           ├── GameCanvas.vue   # Canvas rendering
@@ -63,10 +54,11 @@ Game/
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| **Backend** | Node.js + Express | Web server |
-| **Backend** | Socket.IO | Real-time WebSocket communication |
+| **Backend** | Python 3.12 + FastAPI | Web server + WebSocket |
+| **Backend** | Uvicorn | ASGI server (60fps game loop) |
+| **Backend** | Pydantic | Message validation |
 | **Frontend** | Vue.js 3 | Reactive UI framework |
-| **Frontend** | Vite | Build tool + dev server |
+| **Frontend** | Vite | Build tool + dev server + WS proxy |
 | **Frontend** | Canvas 2D | Game rendering |
 | **Infrastructure** | Docker + Nginx | Containerization + static serving |
 
@@ -74,24 +66,24 @@ Game/
 
 ## 4. Module Responsibilities
 
-### Backend Services
+### Backend
 
 | Module | Responsibility |
 |--------|----------------|
-| `server.js` | WebSocket events, game loop (60 ticks/sec), player connections |
-| `GameService.js` | Game orchestration, scoring, state transitions |
-| `PhysicsService.js` | Ball/paddle movement, velocity, bounds checking |
-| `CollisionService.js` | AABB collision detection (ball vs paddles) |
-| `AIService.js` | AI paddle behavior for bot players |
-| `GameState.js` | Game state data model |
+| `main.py` | WebSocket endpoint, game loop (60 ticks/sec), player connections, physics, collision, scoring |
+
+All game logic lives in `main.py` as classes:
+- `Ball` — position, velocity, reset
+- `Player` — paddle state, movement
+- `PongGameState` — authoritative game state, physics update, goal detection, winner check
 
 ### Frontend Composables
 
 | Module | Responsibility |
 |--------|----------------|
-| `useWebSocket.js` | Socket.IO connection, send/receive events |
+| `useWebSocket.js` | Native WebSocket connection, send/receive events |
 | `useKeyboard.js` | Keyboard input → direction mapping |
-| `GameCanvas.vue` | Canvas rendering at 60fps |
+| `GameCanvas.vue` | Canvas rendering at 60fps, normalized→pixel coordinate conversion |
 
 ---
 
@@ -116,25 +108,25 @@ Game/
 
 3. SERVER PROCESSES INPUT
    ↓
-   server.js receives 'playerInput' event
+   main.py receives 'move' message
    ↓
-   Updates player.inputDirection = 'UP' in GameState
+   Updates player.current_direction in PongGameState
 
-4. GAME LOOP TICK (every 16ms)
+4. GAME LOOP TICK (every 16ms @ 60fps)
    ↓
-   GameService.update(gameState)
+   PongGameState.update_physics()
    ↓
-   PhysicsService.updatePaddle() → moves paddle based on inputDirection
+   Ball.update() → moves ball
    ↓
-   PhysicsService.updateBall() → moves ball
+   check_collisions() → AABB ball vs paddles
    ↓
-   CollisionService.checkPaddleCollisions() → detects hits
+   Player.move() → moves paddle based on current_direction
 
 5. SERVER BROADCASTS STATE
    ↓
-   io.emit('gameState', gameState)
+   world_loop() serializes PongGameState.get_payload()
    ↓
-   All clients receive updated state
+   asyncio.gather sends JSON to all connected clients
 
 6. CLIENT RENDERS
    ↓

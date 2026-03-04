@@ -35,19 +35,29 @@ All messages are JSON: `{ "type": "<type>", "payload": { ... } }`
 | `error` | `{ "message": "...", "code": "NAME_TAKEN" }` | On errors |
 
 ### `gameState` payload (serialized)
+
+> **Note:** all coordinates and velocities are **normalized (0.0–1.0)**.
+> The frontend multiplies by canvas width/height (800×600) to get pixels.
+> Ball velocity is per-tick (1/60s); the frontend converts to pixels/sec for interpolation.
+
 ```json
 {
-  "ball": { "x": 400, "y": 300, "vx": 200, "vy": -150, "radius": 8 },
+  "ball": { "x": 0.5, "y": 0.5, "vx": 0.008, "vy": 0.004, "radius": 0.013 },
   "players": [
     {
       "id": 0, "side": "left",
-      "x": 10, "y": 250, "width": 10, "height": 80,
+      "x": 0.02, "y": 0.435, "width": 0.015, "height": 0.13,
       "score": 3, "connected": true, "name": "Luigi",
-      "input": "UP", "votedToAbandon": false
+      "lastProcessedInputId": 42, "votedToAbandon": false
     }
   ],
   "spectators": [{ "name": "Viewer1" }],
   "status": "playing",
+  "winner": null,
+  "activePlayerCount": 2,
+  "tick": 1234
+}
+```
   "winner": null,
   "activePlayerCount": 2,
   "tick": 1234
@@ -67,5 +77,6 @@ All messages are JSON: `{ "type": "<type>", "payload": { ... } }`
 
 ## Connection
 
-- Expected Backend URL: `ws[s]://<host>:<port>` (same host as frontend, port 3000 default)
+- Backend URL: `ws[s]://<host>/ws` — served by FastAPI via uvicorn
+- In development: Vite proxies `wss://localhost:5173/ws` → `ws://pong-backend-dev:3000/ws` (SSL handled by Vite)
 - On reconnect, client re-sends `joinLobby` with same name to allow session recovery
