@@ -68,6 +68,8 @@
 	sendInput,
 	voteAbandon,
 	restartGame,
+  backToLobby,
+  leaveSpectator,
   } = useWebSocket();
   
   const lobbyError = ref(null);
@@ -103,7 +105,13 @@
   const handleStartVsAI = () => startGame(true);
   const handleRestart = () => restartGame();
   const handleVoteAbandon = () => voteAbandon();
-  const handleBackToLobby = () => window.location.reload();
+  const handleBackToLobby = () => {
+	if (isSpectator.value) {
+	  leaveSpectator();
+	  return;
+	}
+	backToLobby();
+  };
   const handleClearError = () => { lobbyError.value = null; };
   </script>
   

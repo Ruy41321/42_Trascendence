@@ -114,7 +114,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['restart', 'vote-abandon', 'back-to-lobby']);
+const emit = defineEmits(['restart', 'vote-abandon', 'back-to-lobby']);
 
 // ============================================================
 // COMPUTED

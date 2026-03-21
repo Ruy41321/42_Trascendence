@@ -46,7 +46,7 @@ class ClientMessage(BaseModel):
     The payload is kept as a raw dict here and validated separately inside
     each branch of the message handler, because each type has a different schema.
     """
-    type: Literal["move", "joinLobby", "startGame", "voteAbandon", "restartGame", "spectate"]  # accepted message types
+    type: Literal["move", "joinLobby", "startGame", "voteAbandon", "restartGame", "backToLobby", "spectate", "leaveSpectator"]  # accepted message types
     payload: dict = {}  # raw dict, validated per-type in the handler
 
 
@@ -410,6 +410,8 @@ class PongGameState:
         self.ball.vy = 0.004        # reset ball vertical velocity
         self.lobby_queue.clear()    # clear waiting queue on reset
         self.ws_to_player.clear()   # clear dict ws -> Player on reset
+        self.spectator_connections.clear()  # clear spectator ws -> name map on reset
+        self.spectators = []  # clear serialized spectator list on reset
         
 
         for p in self.players:                  # iterate all four slots
@@ -661,7 +663,8 @@ async def websocket_endpoint(ws: WebSocket):
                         await game.reset()                                         # reset game state
                         await game.emit_event("gameAbandoned", {                   # notify all clients
                             "reason": "All players voted to abandon",              # reason string
-                        })   
+                        })
+                        await broadcast("lobbyUpdate", game.get_lobby_state())      # force clients to refresh lobby lists
 
             elif msg.type == "spectate":
                 name = msg.payload.get("name", "Spectator")                 # get name from payload, default to "Spectator"
@@ -671,8 +674,33 @@ async def websocket_endpoint(ws: WebSocket):
                 ]
                 await send_to(ws, "spectatorAssigned", {"name": name})      # confirm to this client only
                 await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of new spectator
+
+            elif msg.type == "leaveSpectator":
+                if ws in game.spectator_connections:                         # remove only this spectator
+                    del game.spectator_connections[ws]
+                    game.spectators = [
+                        {"name": n} for n in game.spectator_connections.values()
+                    ]
+                    await broadcast("lobbyUpdate", game.get_lobby_state())
             
             elif msg.type == "restartGame":
+                await game.reset()                                          # reset all game state
+                await game.emit_event("gameReset", {})                      # notify all clients to reset their local state
+                await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of empty lobby
+
+            elif msg.type == "backToLobby":
+                if not player:
+                    await send_to(ws, "error", {
+                        "message": "Only active players can reset match to lobby",
+                        "code": "BACK_TO_LOBBY_NOT_PLAYER",
+                    })
+                    continue
+                if game.status != "finished":
+                    await send_to(ws, "error", {
+                        "message": "Back to lobby is available only after match end",
+                        "code": "BACK_TO_LOBBY_NOT_FINISHED",
+                    })
+                    continue
                 await game.reset()                                          # reset all game state
                 await game.emit_event("gameReset", {})                      # notify all clients to reset their local state
                 await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of empty lobby

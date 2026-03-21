@@ -13,6 +13,8 @@
  *   { type: "move",         payload: { direction, inputId } }
  *   { type: "voteAbandon",  payload: {} }
  *   { type: "restartGame",  payload: {} }
+ *   { type: "backToLobby",  payload: {} }
+ *   { type: "leaveSpectator", payload: {} }
  * 
  * Server → Client:
  *   { type: "lobbyJoined",       payload: { name } }
@@ -272,6 +274,17 @@ export function useWebSocket() {
     send('restartGame', {});
   }
 
+  function backToLobby() {
+    send('backToLobby', {});
+  }
+
+  function leaveSpectator() {
+    send('leaveSpectator', {});
+    isSpectator.value = false;
+    inLobby.value = false;
+    myPlayer.value = null;
+  }
+
   // ============================================================
   // LIFECYCLE
   // ============================================================
@@ -308,5 +321,7 @@ export function useWebSocket() {
     sendInput,
     voteAbandon,
     restartGame,
+    backToLobby,
+    leaveSpectator,
   };
 }

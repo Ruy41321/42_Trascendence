@@ -41,9 +41,9 @@
       
       <!-- Start Game Button -->
       <div v-if="isInLobby && !isSpectator" class="start-section">
-		<BaseButton v-if="lobbyState.players.length === 1" variant="secondary" @click="handleStartVsAI">Play vs AI</BaseButton>
-        <BaseButton v-else variant="primary" :disabled="!lobbyState.canStart" @click="handleStartGame">Start Game</BaseButton>
-        <p v-if="lobbyState.players.length === 1" class="hint"> Play against AI or wait for more players</p>
+		<!-- <BaseButton v-if="lobbyState.players.length === 1" variant="secondary" @click="handleStartVsAI">Play vs AI</BaseButton> -->
+      <BaseButton variant="primary" :disabled="!lobbyState.canStart" @click="handleStartGame">Start Game</BaseButton>
+        <p v-if="lobbyState.players.length === 1" class="hint"> Waiting for more players</p>
         <p v-else-if="!lobbyState.canStart" class="hint"> Need at least 2 players to start </p>
       </div>
       

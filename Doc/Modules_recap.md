@@ -12,9 +12,9 @@
 | Implement a complete web-based game where users can play against each other | **2** | ✓ |
 | Remote players — Enable two players on separate computers to play the same game in real-time | **2** | ✓ |
 | Multiplayer game (more than two players) | **2** | ✓ |
-| Spectator Mode | **1** | ✓ |
-| Introduce an AI Opponent for games | **2** | ✓ |
-| **Subtotal** | **6 + 3** | |
+| Spectator Mode (extra) | **1** | ✓ |
+| Introduce an AI Opponent for games (extra) | **2** | x |
+| **Subtotal** | **6 + 1** | |
 
 ---
 
@@ -38,9 +38,9 @@
 |--------|--------|--------|
 | Use a frontend framework (React, Vue, Angular, Svelte, etc.) | **1** | ✓ |
 | Custom-made design system with reusable components | **1** | ✓ |
-| Progressive Web App (PWA) with offline support and installability | **1** | ✓ |
-| Support for additional browsers | **1** | ✓ |
-| **Subtotal** | **4** | |
+| Progressive Web App (PWA) with offline support and installability | **1** | x |
+| Support for additional browsers | **1** | x |
+| **Subtotal** | **2** | |
 
 ---
 
@@ -59,6 +59,6 @@
 
 | Category | Current Points | Target Points |
 |----------|----------------|----------------|
-| **Total Assigned** | **16** | **14** ✅ |
+| **Total Assigned** | **15** | **14** ✅ |
 
 

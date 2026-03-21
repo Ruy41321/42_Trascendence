@@ -60,14 +60,14 @@ defineEmits(['click']);
 /* Secondary Variant TODO:check colors */
 .base-button.secondary
 {
-  background: rgba(black);
+  background: rgb(163, 43, 43);
   color: white;
   border: 5px solid rgba(255, 255, 255, 0.3);
 }
 .base-button.secondary:hover:not(:disabled)
 {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: #00d4ff;
+  background: rgba(130, 40, 40, 0.386);
+  border-color: #8a1616;
 }
 
 /* Disabled State */

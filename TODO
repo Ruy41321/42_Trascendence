@@ -1,0 +1,33 @@
+DONE remove the button Play vs ai
+
+FIXED back-to-lobby after match doesnt notify other clients
+FIXED its not possible to start a match after an old one is finished (status staying as finished)
+    only when clicked back-to-lobby, on play again its normal back-to-lobby
+FIXED Vote to abbandon not working
+FIXED When exiting a match with vote to abbandon the view of the queued player and spectators doesn reset
+
+
+Game backend:
+
+    The backend thinks that there are always 4 players playing if only 2 plays , the other 2 are signed as Anonymous and they can also win, i think this is realted 
+        to the issue where we see typed "DISCONNECTED" on the side of missing players.
+
+    Play again and backToLobby when a match is finished do the same thing (return to lobby) instead play again should restart the match immediately.
+
+    If a player crash (disconnect reloading the page) the game freeze without a way to restart (The view needs an update of GameState with status = "paused" to show 
+        the message)
+
+    If a match freeze there is no way to reset it, there should be a timer where after 20/30 seconds of no-activity reset the lobby allowing other players to play. This
+        should work the same after a match finish if none click play again or back to lobby for those amount of seconds;
+
+    A player can join mid match at the moment taking the place of one of the anonymous (it should get fixed , fixing the previous issue)
+
+    A fifth player can join atm(it will get limited by the frontend but in case he force it it should be taken as spectactor)
+
+    Use the abdallah's backend api to save match datas 
+
+Frontend:
+
+    Remove Join Match if there are already 4 players, show only spectate.
+
+    Remove the "insert name" logic and add the login page before to play
