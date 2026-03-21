@@ -16,24 +16,48 @@ class MatchService:
                     db.add(unlock)
 
     def record_match(self, db: Session, match_data: MatchResult) -> Match:
+        # Validate required players
         player1 = db.query(User).filter(User.id == match_data.player1_id).first()
         if not player1:
             raise ValueError("Player 1 not found")
         player2 = db.query(User).filter(User.id == match_data.player2_id).first()
         if not player2:
             raise ValueError("Player 2 not found")
-        if match_data.winner_id not in [match_data.player1_id, match_data.player2_id]:
-            raise ValueError("Winner must be player 1 or player 2")
+
+        # Build list of all players in this match
+        players = {match_data.player1_id: player1, match_data.player2_id: player2}
+
+        # Validate optional players
+        if match_data.player3_id:
+            player3 = db.query(User).filter(User.id == match_data.player3_id).first()
+            if not player3:
+                raise ValueError("Player 3 not found")
+            players[match_data.player3_id] = player3
+
+        if match_data.player4_id:
+            player4 = db.query(User).filter(User.id == match_data.player4_id).first()
+            if not player4:
+                raise ValueError("Player 4 not found")
+            players[match_data.player4_id] = player4
+
+        # Validate winner is one of the players
+        if match_data.winner_id not in players:
+            raise ValueError("Winner must be one of the players")
+
+        # Create match record
         data_dict = match_data.model_dump()
         match = Match(**data_dict)
         db.add(match)
         db.flush()
-        if match_data.winner_id == match_data.player1_id:
-            winner, loser = player1, player2
-        else:
-            winner, loser = player2, player1
+
+        # Update wins/losses
+        winner = players[match_data.winner_id]
         winner.wins += 1
-        loser.losses += 1
+        for pid, player in players.items():
+            if pid != match_data.winner_id:
+                player.losses += 1
+
+        # Unlock achievements
         self._unlock_achievement_by_wins(db, winner, 1, "First victory")
         self._unlock_achievement_by_wins(db, winner, 5, "Five victory")
         self._unlock_achievement_by_wins(db, winner, 10, "Ten victory")

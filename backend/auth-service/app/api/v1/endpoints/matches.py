@@ -29,7 +29,7 @@ def get_user_matches(
     user_id: str,
     db: Session = Depends(get_db)
 ):
-    matches = db.query(Match).filter(or_(Match.player1_id == user_id, Match.player2_id == user_id)).all()
+    matches = db.query(Match).filter(or_(Match.player1_id == user_id, Match.player2_id == user_id, Match.player3_id == user_id, Match.player4_id == user_id)).all()
     return (matches)
 
 
