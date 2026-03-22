@@ -6,10 +6,11 @@
         <h2 class="lobby-title">Lobby</h2>
       </template>
       <!-- Join Form now use COMPONENTS: BaseInput -->
-      <div v-if="!isInLobby && !isSpectator" class="join-section">
-		<BaseInput v-model="playerName" label="Enter your name:" placeholder="Your name" :error="errorMessage" @keyup.enter="handleJoinLobby" />
-        <div class="button-group">
-		<BaseButton variant="primary" :disabled="!playerName.trim()" @click="handleJoinLobby">Join Game</BaseButton>
+        <div v-if="!isInLobby && !isSpectator" class="join-section">
+    		<BaseInput v-if="canJoinGame" v-model="playerName" label="Enter your name:" placeholder="Your name" :error="errorMessage" @keyup.enter="handleJoinLobby" />
+        <p v-else class="hint full-lobby-hint">Lobby full: 4/4 players already in game or waiting.</p>
+        <div :class="['button-group', { 'is-full': !canJoinGame }]">
+    		<BaseButton v-if="canJoinGame" variant="primary" :disabled="!playerName.trim()" @click="handleJoinLobby">Join Game</BaseButton>
         <BaseButton variant="secondary" @click="handleSpectate">Spectate</BaseButton>
         </div>
       </div>
@@ -95,8 +96,13 @@ const props = defineProps({
 const emit = defineEmits(['join-lobby', 'spectate', 'start-game', 'start-vs-ai', 'clear-error']);
 
 const playerName = ref('');
+const MAX_PLAYERS = 4;
+const isLobbyFull = computed(() => props.lobbyState.players.length >= MAX_PLAYERS);
+const canJoinGame = computed(() => !isLobbyFull.value && (props.gameStatus === 'lobby' || props.gameStatus === 'waiting'));
 
 function handleJoinLobby() {
+  if (!canJoinGame.value) return;
+
   if (playerName.value.trim()) {
     emit('clear-error');  // Clear any previous error
     emit('join-lobby', playerName.value.trim());
@@ -132,6 +138,10 @@ function handleStartVsAI() {
 .button-group {
   display: flex;
   gap: 12px;
+}
+
+.button-group.is-full {
+  justify-content: center;
 }
 
 .lobby-status {
@@ -194,6 +204,11 @@ function handleStartVsAI() {
   margin-top: 8px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.full-lobby-hint {
+  text-align: left;
+  margin-bottom: 12px;
 }
 
 .game-status {
