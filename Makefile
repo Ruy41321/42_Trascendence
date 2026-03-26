@@ -1,4 +1,4 @@
-.PHONY: help dev dev-down dev-logs prod prod-down prod-logs logs clean rebuild certs
+.PHONY: help prod prod-down prod-logs prod-rebuild logs clean rebuild certs status build up down restart
 
 # --- rilevamento senza eseguire uname su cmd.exe ---
 IS_WINDOWS := $(filter Windows_NT,$(OS))
@@ -48,12 +48,6 @@ help:
 	@echo "║                                                              ║"
 	@echo "║  SETUP                                                       ║"
 	@echo "║    make certs        Generate SSL certificates (first time)  ║"
-	@echo "║                                                              ║"
-	@echo "║  DEVELOPMENT (hot reload + HTTPS)                            ║"
-	@echo "║    make dev          Start dev containers                    ║"
-	@echo "║    make dev-down     Stop dev containers                     ║"
-	@echo "║    make dev-logs     View dev logs                           ║"
-	@echo "║    make dev-rebuild  Rebuild and start dev                   ║"
 	@echo "║                                                              ║"
 	@echo "║  PRODUCTION (optimized + HTTPS)                              ║"
 	@echo "║    make prod         Build and start production              ║"
@@ -106,34 +100,6 @@ else
         echo "✅ SSL certificates found."; \
     fi
 endif
-
-# ===========================================
-# DEVELOPMENT
-# ===========================================
-
-dev: check-certs
-	@echo "🚀 Starting development environment..."
-	docker-compose -f docker/compose.dev.yml --env-file .env up -d
-	@echo ""
-	@echo "✅ Development servers running:"
-	@echo "   Frontend:     https://localhost:5173 (Vite + Hot Reload + HTTPS)"
-	@echo "   Game Service: wss://localhost:3000 (WebSocket Secure)"
-	@echo "   Auth Service: http://localhost:8001 (REST API)"
-	@echo "   PostgreSQL:   localhost:5433"
-	@echo ""
-	@echo "⚠️  Browser may warn about self-signed certificate - click 'Advanced' → 'Proceed'"
-	@echo ""
-
-dev-down:
-	@echo "🛑 Stopping development containers..."
-	docker-compose -f docker/compose.dev.yml --env-file .env down
-
-dev-logs:
-	docker-compose -f docker/compose.dev.yml --env-file .env logs -f
-
-dev-rebuild: check-certs
-	@echo "🔄 Rebuilding development environment..."
-	docker-compose -f docker/compose.dev.yml --env-file .env up -d --build
 
 # ===========================================
 # PRODUCTION
@@ -196,12 +162,11 @@ status:
 clean:
 	@echo "🧹 Cleaning all Docker resources..."
 	docker-compose -f docker/compose.prod.yml --env-file .env down -v --rmi all 2>/dev/null || true
-	docker-compose -f docker/compose.dev.yml --env-file .env down -v --rmi all 2>/dev/null || true
 	@echo "✅ Cleaned all containers, images, and volumes"
 
 # Alias per retrocompatibilità
 build: prod
 up: prod
 down: prod-down
-logs: dev-logs
-restart: dev-rebuild
+logs: prod-logs
+restart: prod-rebuild

@@ -7,7 +7,7 @@
  * All messages are JSON: { type: "<type>", payload: { ... } }
  * 
  * Client → Server:
- *   { type: "joinLobby",    payload: { playerName } }
+ *   { type: "joinLobby",    payload: { playerName, token } }
  *   { type: "spectate",     payload: { name } }
  *   { type: "startGame",    payload: { vsAI } }
  *   { type: "move",         payload: { direction, inputId } }
@@ -15,6 +15,7 @@
  *   { type: "restartGame",  payload: {} }
  *   { type: "backToLobby",  payload: {} }
  *   { type: "leaveSpectator", payload: {} }
+ *   { type: "leaveLobby",   payload: {} }
  * 
  * Server → Client:
  *   { type: "lobbyJoined",       payload: { name } }
@@ -62,6 +63,7 @@ export function useWebSocket() {
   let reconnectAttempts = 0;
   let reconnectTimer = null;
   let intentionalClose = false;
+  let joinToken = null;
   const MAX_RECONNECT_ATTEMPTS = 5;
   const BASE_RECONNECT_DELAY = 1000;
 
@@ -88,7 +90,7 @@ export function useWebSocket() {
 
       // Re-join on reconnect if we had a name
       if (myName.value) {
-        send('joinLobby', { playerName: myName.value });
+        send('joinLobby', { playerName: myName.value, token: joinToken });
       }
     });
 
@@ -241,10 +243,11 @@ export function useWebSocket() {
   // PUBLIC METHODS
   // ============================================================
 
-  function joinLobby(playerName) {
+  function joinLobby(playerName, token = null) {
     console.log('🎮 Joining lobby as:', playerName);
     myName.value = playerName;
-    send('joinLobby', { playerName });
+    joinToken = token;
+    send('joinLobby', { playerName, token });
   }
 
   function spectate(name = null) {
@@ -285,6 +288,15 @@ export function useWebSocket() {
     myPlayer.value = null;
   }
 
+  function leaveLobby() {
+    send('leaveLobby', {});
+    myPlayer.value = null;
+    inLobby.value = false;
+    isSpectator.value = false;
+    myName.value = null;
+    joinToken = null;
+  }
+
   // ============================================================
   // LIFECYCLE
   // ============================================================
@@ -323,5 +335,6 @@ export function useWebSocket() {
     restartGame,
     backToLobby,
     leaveSpectator,
+    leaveLobby,
   };
 }

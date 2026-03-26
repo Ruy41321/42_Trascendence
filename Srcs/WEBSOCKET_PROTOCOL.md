@@ -78,5 +78,5 @@ All messages are JSON: `{ "type": "<type>", "payload": { ... } }`
 ## Connection
 
 - Backend URL: `ws[s]://<host>/ws` — served by FastAPI via uvicorn
-- In development: Vite proxies `wss://localhost:5173/ws` → `ws://pong-backend-dev:3000/ws` (SSL handled by Vite)
+- Frontend connects through `wss://localhost/ws` in the production stack
 - On reconnect, client re-sends `joinLobby` with same name to allow session recovery

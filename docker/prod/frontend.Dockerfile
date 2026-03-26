@@ -38,4 +38,4 @@ EXPOSE 80 443
 
 # Substitute only our custom vars at startup, then launch nginx.
 # The quoted variable list prevents envsubst from touching nginx's own $variables.
-CMD ["sh", "-c", "envsubst '${GAME_SERVICE_HOST} ${GAME_SERVICE_INTERNAL_PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "envsubst '${GAME_SERVICE_HOST} ${GAME_SERVICE_INTERNAL_PORT} ${AUTH_SERVICE_HOST} ${AUTH_SERVICE_INTERNAL_PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
