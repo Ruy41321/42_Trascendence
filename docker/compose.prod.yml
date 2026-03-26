@@ -106,6 +106,8 @@ services:
     environment:
       - GAME_SERVICE_HOST=game-service
       - GAME_SERVICE_INTERNAL_PORT=${GAME_SERVICE_PORT:-3000}
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_INTERNAL_PORT=${AUTH_SERVICE_INTERNAL_PORT:-8000}
     volumes:
       - ./certs:/etc/nginx/ssl:ro
     depends_on:

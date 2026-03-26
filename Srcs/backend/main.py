@@ -46,7 +46,7 @@ class ClientMessage(BaseModel):
     The payload is kept as a raw dict here and validated separately inside
     each branch of the message handler, because each type has a different schema.
     """
-    type: Literal["move", "joinLobby", "startGame", "voteAbandon", "restartGame", "backToLobby", "spectate", "leaveSpectator"]  # accepted message types
+    type: Literal["move", "joinLobby", "startGame", "voteAbandon", "restartGame", "backToLobby", "spectate", "leaveSpectator", "leaveLobby"]  # accepted message types
     payload: dict = {}  # raw dict, validated per-type in the handler
 
 
@@ -604,6 +604,24 @@ async def websocket_endpoint(ws: WebSocket):
 
             if msg.type == "joinLobby":
                 parsed = JoinLobbyPayload(**msg.payload)    # validate joinLobby-specific payload
+                if not parsed.token:
+                    await send_to(ws, "error", {
+                        "message": "Authentication required to join as player",
+                        "code": "AUTH_REQUIRED",
+                    })
+                    continue
+
+                try:
+                    payload = jwt.get_unverified_claims(parsed.token)
+                    if not payload.get("sub"):
+                        raise ValueError("Missing sub claim")
+                except Exception:
+                    await send_to(ws, "error", {
+                        "message": "Invalid token",
+                        "code": "INVALID_TOKEN",
+                    })
+                    continue
+
                 # check for duplicate name among connected players and lobby queue
                 name_taken = any(                                    # any() with generator expression: True if at least one matches
                     p.name == parsed.playerName and p.connected
@@ -624,9 +642,7 @@ async def websocket_endpoint(ws: WebSocket):
                         player.name = parsed.playerName         # set display name
                         game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion
                         player.token = parsed.token          # saves the jwt token
-                        if parsed.token:                     # verify if the frontend sent the token
-                            payload = jwt.decode(parsed.token, options={"verify_signature": False}) # decodes the token from base64 to a python dict without verifying the firm(my part of backend hasn't secret key)
-                            player.user_id = payload.get("sub")  # extract uuid from payload
+                        player.user_id = payload.get("sub")  # extract uuid from payload
                         await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
                         await send_to(ws, "playerAssigned", {   # confirm assignment to this client
                             "playerId": player.id,
@@ -682,6 +698,20 @@ async def websocket_endpoint(ws: WebSocket):
                         {"name": n} for n in game.spectator_connections.values()
                     ]
                     await broadcast("lobbyUpdate", game.get_lobby_state())
+
+            elif msg.type == "leaveLobby":
+                if player:
+                    player.connected = False
+                    player.current_direction = None
+                    player.name = "Anonymous"
+                    player.score = 0
+                    player.token = None
+                    player.user_id = None
+                    player.votedToAbandon = False
+                game.ws_to_player.pop(ws, None)
+                game.lobby_queue = [e for e in game.lobby_queue if e["ws"] != ws]
+                await game.promote_from_queue()
+                await broadcast("lobbyUpdate", game.get_lobby_state())
             
             elif msg.type == "restartGame":
                 await game.reset()                                          # reset all game state

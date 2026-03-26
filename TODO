@@ -6,6 +6,7 @@ FIXED its not possible to start a match after an old one is finished (status sta
 FIXED Vote to abbandon not working
 FIXED When exiting a match with vote to abbandon the view of the queued player and spectators doesn reset
 
+DONE:   Remove the "insert name" logic and add the login page to play
 
 Game backend:
 
@@ -26,8 +27,14 @@ Game backend:
     And send the info with current players at the first moment a player connects so he nows from the begin the current waiting or playing players and the client 
         hide the join button if already 4
 
+    Change the logic to accept user in lobby: atm check if the is already taken, but it should check the token
+
     Use the abdallah's backend api to save match datas 
 
-Frontend:
+General:
 
-    Remove the "insert name" logic and add the login page before to play
+    Privacy policy and terms of service
+    Use https for internal traffic
+    Resolve icon warning
+    Resolve ssl cert error
+    Do the subject requested Readme.md

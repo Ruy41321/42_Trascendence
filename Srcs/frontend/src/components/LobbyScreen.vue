@@ -7,17 +7,32 @@
       </template>
       <!-- Join Form now use COMPONENTS: BaseInput -->
         <div v-if="!isInLobby && !isSpectator" class="join-section">
-    		<BaseInput v-if="canJoinGame" v-model="playerName" label="Enter your name:" placeholder="Your name" :error="errorMessage" @keyup.enter="handleJoinLobby" />
-        <p v-else class="hint full-lobby-hint">Lobby full: 4/4 players already in game or waiting.</p>
-        <div :class="['button-group', { 'is-full': !canJoinGame }]">
-    		<BaseButton v-if="canJoinGame" variant="primary" :disabled="!playerName.trim()" @click="handleJoinLobby">Join Game</BaseButton>
-        <BaseButton variant="secondary" @click="handleSpectate">Spectate</BaseButton>
+          <p v-if="requiresLoginToPlay && !authUsername" class="hint full-lobby-hint">Login required to play. You can still spectate without logging in.</p>
+          <p v-else-if="requiresLoginToPlay && authUsername" class="hint full-lobby-hint">You will join as <strong>{{ authUsername }}</strong>.</p>
+   	    	<BaseInput
+  			v-if="canManualJoin && canJoinGame"
+  			v-model="playerName"
+  			label="Enter your name:"
+  			placeholder="Your name"
+  			:error="errorMessage"
+  			@keyup.enter="handleJoinLobby" />
+          <p v-else-if="!canJoinGame" class="hint full-lobby-hint">Lobby full: 4/4 players already in game or waiting.</p>
+          <p v-else class="hint full-lobby-hint">Joining lobby with your account username...</p>
+          <div :class="['button-group', { 'is-full': !canJoinGame }]">
+  	    	<BaseButton v-if="canJoinGame" variant="primary" :disabled="joinDisabled" @click="handleJoinLobby">{{ joinButtonLabel }}</BaseButton>
+          <BaseButton variant="secondary" @click="handleSpectate">Spectate</BaseButton>
         </div>
       </div>
       <!-- Lobby Status now use COMPONENTS: GameBadge -->
       <div v-else class="lobby-status">
 		<GameBadge v-if="isSpectator" variant="warning"> Watching as Spectator</GameBadge>
         <GameBadge v-else variant="success"> Ready as <strong>{{ myName }}</strong></GameBadge>
+        <div v-if="isSpectator" class="spectator-actions">
+          <BaseButton variant="secondary" @click="handleLeaveSpectator">Leave Spectate</BaseButton>
+        </div>
+        <div v-if="isInLobby && !isSpectator" class="player-actions">
+          <BaseButton variant="secondary" @click="handleLeaveLobby">Leave Lobby</BaseButton>
+        </div>
       </div>
       
 	  <!-- List of player now use COMPONENTS: BaseList -->
@@ -91,17 +106,52 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  canManualJoin: {
+    type: Boolean,
+    default: true,
+  },
+  requiresLoginToPlay: {
+    type: Boolean,
+    default: false,
+  },
+  authUsername: {
+    type: String,
+    default: null,
+  },
 });
 
-const emit = defineEmits(['join-lobby', 'spectate', 'start-game', 'start-vs-ai', 'clear-error']);
+const emit = defineEmits(['join-lobby', 'spectate', 'start-game', 'start-vs-ai', 'clear-error', 'require-login', 'leave-spectator', 'leave-lobby']);
 
 const playerName = ref('');
 const MAX_PLAYERS = 4;
 const isLobbyFull = computed(() => props.lobbyState.players.length >= MAX_PLAYERS);
 const canJoinGame = computed(() => !isLobbyFull.value && (props.gameStatus === 'lobby' || props.gameStatus === 'waiting'));
+const joinDisabled = computed(() => {
+  if (!canJoinGame.value) return true;
+
+  if (props.requiresLoginToPlay && !props.authUsername) return false;
+  if (props.canManualJoin) return !playerName.value.trim();
+  return false;
+});
+
+const joinButtonLabel = computed(() => {
+  if (props.requiresLoginToPlay && !props.authUsername) return 'Login to Play';
+  return 'Join Game';
+});
 
 function handleJoinLobby() {
   if (!canJoinGame.value) return;
+
+  if (props.requiresLoginToPlay && !props.authUsername) {
+    emit('require-login');
+    return;
+  }
+
+  if (props.requiresLoginToPlay && props.authUsername) {
+    emit('clear-error');
+    emit('join-lobby', props.authUsername);
+    return;
+  }
 
   if (playerName.value.trim()) {
     emit('clear-error');  // Clear any previous error
@@ -111,6 +161,14 @@ function handleJoinLobby() {
 
 function handleSpectate() {
   emit('spectate');
+}
+
+function handleLeaveSpectator() {
+  emit('leave-spectator');
+}
+
+function handleLeaveLobby() {
+  emit('leave-lobby');
 }
 
 function handleStartGame() {
@@ -147,6 +205,14 @@ function handleStartVsAI() {
 .lobby-status {
   text-align: center;
   margin-bottom: 24px;
+}
+
+.spectator-actions {
+  margin-top: 12px;
+}
+
+.player-actions {
+  margin-top: 12px;
 }
 
 .player-slot {
