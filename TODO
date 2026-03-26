@@ -7,6 +7,7 @@ FIXED Vote to abbandon not working
 FIXED When exiting a match with vote to abbandon the view of the queued player and spectators doesn reset
 
 DONE:   Remove the "insert name" logic and add the login page to play
+FIXED:   Resolved icon & favicon warning/error
 
 Game backend:
 
@@ -35,6 +36,5 @@ General:
 
     Privacy policy and terms of service
     Use https for internal traffic
-    Resolve icon warning
     Resolve ssl cert error
     Do the subject requested Readme.md
