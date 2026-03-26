@@ -8,6 +8,10 @@ FIXED When exiting a match with vote to abbandon the view of the queued player a
 
 DONE:   Remove the "insert name" logic and add the login page to play
 
+FIXED:  Removed old uncomplete PWA files causing warnings and errors on the console
+        Resolved icon & favicon warning/error
+        Resolve ssl cert error
+
 Game backend:
 
     The backend thinks that there are always 4 players playing if only 2 plays , the other 2 are signed as Anonymous and they can also win, i think this is realted 
@@ -35,6 +39,4 @@ General:
 
     Privacy policy and terms of service
     Use https for internal traffic
-    Resolve icon warning
-    Resolve ssl cert error
     Do the subject requested Readme.md
