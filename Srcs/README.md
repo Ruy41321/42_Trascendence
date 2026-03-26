@@ -43,7 +43,6 @@ Game/
 │           └── LobbyScreen.vue  # Lobby interface
 │
 └── docker/                  # Docker configuration
-    ├── compose.dev.yml
     ├── compose.prod.yml
     └── ...
 ```
@@ -143,13 +142,9 @@ All game logic lives in `main.py` as classes:
 # First time: generate SSL certificates
 make certs
 
-# Development (hot reload)
-make dev            # Start
-make dev-logs       # View logs
-make dev-down       # Stop
-
 # Production (optimized)
 make prod           # Start
+make prod-logs      # View logs
 make prod-down      # Stop
 
 # Cleanup
@@ -157,5 +152,4 @@ make clean          # Remove all containers/images
 ```
 
 **Access URLs:**
-- Dev: https://localhost:5173
 - Prod: https://localhost
