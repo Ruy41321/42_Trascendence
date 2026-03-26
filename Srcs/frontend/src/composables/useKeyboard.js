@@ -30,6 +30,17 @@ export function useKeyboard(playerSideRef, onInput) {
   
   // Set of currently pressed keys (to prevent repeat)
   const pressedKeys = new Set();
+
+  /**
+   * Returns true when the event target is an editable field.
+   * In that case game controls must not intercept typed keys.
+   */
+  function isEditableTarget(target) {
+    if (!(target instanceof Element)) return false;
+
+    const editable = target.closest('input, textarea, select, [contenteditable="true"]');
+    return Boolean(editable) || target.isContentEditable;
+  }
   
   /**
    * Handler keydown
@@ -37,6 +48,8 @@ export function useKeyboard(playerSideRef, onInput) {
   function handleKeyDown(event) {
     const side = typeof playerSideRef === 'object' ? playerSideRef.value : playerSideRef;
     if (!side) return;
+
+    if (isEditableTarget(event.target)) return;
     
     const code = event.code;
     
@@ -76,7 +89,12 @@ export function useKeyboard(playerSideRef, onInput) {
     if (!side) return;
     
     const code = event.code;
+    const wasPressed = pressedKeys.has(code);
     pressedKeys.delete(code);
+
+    // If the keyup comes from a text field and we were not tracking it,
+    // it was normal typing and should not affect gameplay input.
+    if (isEditableTarget(event.target) && !wasPressed) return;
     
     // Get mapping for our player
     const keys = keyMappings[side];
@@ -84,7 +102,9 @@ export function useKeyboard(playerSideRef, onInput) {
     
     // If it was one of our keys, send null (stop movement)
     if (keys.UP.includes(code) || keys.DOWN.includes(code)) {
-      event.preventDefault();
+      if (!isEditableTarget(event.target)) {
+        event.preventDefault();
+      }
       if (onInput) {
         onInput(null);
       }

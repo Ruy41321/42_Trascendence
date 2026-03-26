@@ -140,6 +140,16 @@
   // CORE LOGIC: Determines if we show the Lobby or the Game
   const showLobby = computed(() => {
 	const status = gameState.value?.status;
+  const activeGameStatuses = new Set(['countdown', 'playing', 'paused', 'finished']);
+
+  // Show game only when backend explicitly reports an active match status.
+  if (activeGameStatuses.has(status)) return false;
+
+  // If we are still in lobby flow, keep lobby visible even if player is already assigned.
+  if (inLobby.value && !isSpectator.value) return true;
+
+  // While waiting first state sync, keep user on lobby instead of showing canvas "Connecting...".
+  if (!status) return true;
 	
 	// Show lobby if the server says we're in lobby mode
 	if (status === 'lobby' || status === 'waiting') return true;

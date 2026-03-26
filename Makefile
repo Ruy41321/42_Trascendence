@@ -125,6 +125,7 @@ prod-logs:
 
 prod-rebuild: check-certs
 	@echo "🔄 Rebuilding production environment..."
+	docker-compose -f docker/compose.prod.yml --env-file .env down 
 	docker-compose -f docker/compose.prod.yml --env-file .env up -d --build
 
 # ===========================================
