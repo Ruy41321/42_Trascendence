@@ -119,6 +119,19 @@ services:
     networks:
       - app-network
 
+  # ── ADMINER (DB viewer) ──────────────────────────
+  adminer:
+    image: adminer:latest
+    container_name: transcendence-adminer
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - db-network
+
 volumes:
   postgres_data:
 

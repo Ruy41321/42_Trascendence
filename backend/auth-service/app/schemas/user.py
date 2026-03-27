@@ -19,8 +19,8 @@ class UserResponse(BaseModel):
     login_42: Optional[str] = None
     username: str
     email: str
-#    wins: int
-#    losses: int
+    wins: int
+    losses: int
     created_at: datetime
     updated_at: datetime
     
