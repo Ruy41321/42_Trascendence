@@ -32,6 +32,10 @@ class Settings(BaseSettings):
 
 #cors
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
+
+    @property
+    def CORS_ORIGINS_LIST(self) -> list:
+        return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",") if origin.strip()]
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive = True,

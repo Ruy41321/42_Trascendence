@@ -8,7 +8,7 @@ app = FastAPI(title = settings.PROJECT_NAME, version =settings.VERSION, openapi_
 
 app.add_middleware(
         CORSMiddleware,
-        allow_origins = settings.BACKEND_CORS_ORIGINS,
+        allow_origins = settings.CORS_ORIGINS_LIST,
         allow_credentials=True, #autorise cookie et authentification, les tokens jwt seront peut etre dans les cookies , si false il bloque les cookies
         allow_methods=["*"], #autorise get post put delete etc
         allow_headers=["*"] #autorise tout les headers
