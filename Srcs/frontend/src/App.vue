@@ -55,12 +55,34 @@
 		</template>
 	  </main>
   
-	  <footer class="game-footer">
-		<p>Made By Luigi, Tobia, Abdalla and Alessio</p>
-		<GameBadge :variant="connected ? 'success' : 'danger'">
-		  {{ connected ? 'Connected' : 'Disconnected' }}
-		</GameBadge>
-	  </footer>
+	<footer class="game-footer">
+	  <div class="footer-content">
+	    <p>Made By Luigi, Tobia, Abdalla and Alessio</p>
+	    <div class="footer-links">
+	      <button class="link-btn" @click="activeModal = 'about'; console.log('Active Modal is now:', activeModal)">About Us</button>
+		  
+	      <span class="separator">|</span>
+	      <button class="link-btn" @click="activeModal = 'tos'">Terms of Service</button>
+	      <span class="separator">|</span>
+	      <button class="link-btn" @click="activeModal = 'privacy'">Privacy Policy</button>
+	    </div>
+	    <GameBadge :variant="connected ? 'success' : 'danger'">
+	      {{ connected ? 'Connected' : 'Disconnected' }}
+	    </GameBadge>
+	  </div>
+	</footer>
+
+	<ModalDialog :is-open="!!activeModal" :title="activeModal ? modalContent[activeModal].title : ''" @close="activeModal = null">
+	  <div class="legal-content" v-if="activeModal">
+	    <div v-html="modalContent[activeModal].body"></div>
+	  </div>
+	  <template #footer>
+	    <button class="logout-button" @click="activeModal = null" style="width: 100%">
+	      Close
+	    </button>
+	  </template>
+	</ModalDialog>
+
 	</div>
   </template>
   
@@ -74,6 +96,8 @@
   import GameInfoPanel from './components/GameInfoPanel.vue';
   import GameBadge from './components/GameBadge.vue';
   import AuthScreen from './components/AuthScreen.vue';
+  //TODO:
+  import ModalDialog from './components/ModalDialog.vue';
   
   // Composables
   import { useWebSocket } from './composables/useWebSocket.js';
@@ -259,6 +283,46 @@
 	backToLobby();
   };
   const handleClearError = () => { lobbyError.value = null; };
+
+
+//TODO: FIXING THE ISSUE
+
+// 2. State for the modals
+const activeModal = ref(null); // 'tos', 'privacy', or 'about'
+
+// 3. Relevant Content (To avoid rejection for "placeholder" content)
+const modalContent = {
+  about: {
+    title: "About Pong 4-Player",
+    body: `
+      <p>This project is a high-performance, real-time multiplayer Pong game developed as part of our web development curriculum.</p>
+      <p><strong>The Team:</strong> Luigi (Backend), Tobia (Frontend), Abdalla (DevOps), and Alessio (UI/UX).</p>
+      <p>Built with Vue 3, WebSockets, and a custom physics engine to ensure 60FPS gameplay across multiple clients.</p>
+    `
+  },
+  tos: {
+    title: "Terms of Service",
+    body: `
+      <p>By using Pong 4-Player, you agree to the following:</p>
+      <ul>
+        <li><strong>Fair Play:</strong> Cheating, botting, or exploiting bugs to gain an unfair advantage is prohibited.</li>
+        <li><strong>Accountability:</strong> Users are responsible for the security of their accounts and any activity performed under their username.</li>
+        <li><strong>Service Availability:</strong> We provide this game "as-is" and do not guarantee 100% uptime during this evaluation phase.</li>
+      </ul>
+    `
+  },
+  privacy: {
+    title: "Privacy Policy",
+    body: `
+      <p>We value your privacy. Here is how we handle your data:</p>
+      <ul>
+        <li><strong>Data Collection:</strong> We collect only your username and encrypted password for authentication purposes.</li>
+        <li><strong>Game Stats:</strong> Winning/losing history is stored to provide leaderboard functionality.</li>
+        <li><strong>Cookies:</strong> We use local storage (JWT tokens) strictly to keep you logged in. We do not use tracking or third-party advertising cookies.</li>
+      </ul>
+    `
+  }
+};
   </script>
   
   <style scoped>
@@ -360,6 +424,77 @@
     height: auto !important;
     max-width: 100% !important;
     aspect-ratio: 4/3;
+  }
+}
+
+/*TODO: FOOTER*/
+.game-footer {
+  margin-top: auto; /* Pushes footer to bottom */
+  padding: 30px 20px;
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #00d4ff;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.link-btn:hover {
+  color: #fff;
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Legal text styling inside the modal */
+.legal-content {
+  text-align: left;
+  line-height: 1.6;
+  color: #e0e0e0;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.legal-content p {
+  margin-bottom: 15px;
+}
+
+.legal-content ul {
+  margin-bottom: 15px;
+  padding-left: 20px;
+}
+
+/* Ensure footer stays at the bottom on mobile */
+@media (max-width: 768px) {
+  .footer-links {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .separator {
+    display: none;
   }
 }
   </style>

@@ -1,35 +1,34 @@
 <template>
-	<Teleport to="body">
-	  
-	  <div v-if="isOpen" class="modal-backdrop" @click.self="$emit('close')">
-		
-		<div class="modal-box">
-		  <h3 v-if="title" class="modal-title">{{ title }}</h3>
-		  
-		  <div class="modal-body">
-			<slot></slot>
-		  </div>
-  
-		  <div class="modal-footer">
-			<button class="btn-cancel" @click="$emit('close')">Cancel</button>
-			<button class="btn-confirm" @click="$emit('confirm')">Confirm</button>
-		  </div>
-		</div>
-  
-	  </div>
-	  
-	</Teleport>
-  </template>
-  
-  <script setup>
-  defineProps({
-	isOpen: { type: Boolean, default: false },
-	title: { type: String, default: 'Confirm Action' }
-  });
-  
-  defineEmits(['close', 'confirm']);
-  </script>
-  
+  <Teleport to="body">
+    <div v-if="isOpen" class="modal-backdrop" @click.self="$emit('close')">
+      <div class="modal-box">
+        <h3 v-if="title" class="modal-title">{{ title }}</h3>
+        
+        <div class="modal-body">
+          <slot></slot> </div>
+
+        <div class="modal-footer">
+          <slot name="footer">
+            <button class="btn-cancel" @click="$emit('close')">Cancel</button>
+            <button class="btn-confirm" @click="$emit('confirm')">Confirm</button>
+          </slot>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
+<script setup>
+defineProps({
+  isOpen: { type: Boolean, default: false },
+  title: { type: String, default: 'Confirm Action' }
+});
+
+defineEmits(['close', 'confirm']);
+</script>
+
+
+<!-- -->
   <style scoped>
   .modal-backdrop {
 	position: fixed;
