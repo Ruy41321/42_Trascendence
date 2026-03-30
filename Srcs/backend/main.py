@@ -321,7 +321,7 @@ class PongGameState:
 
         if side_has_player:                         # goal: award points and reset ball
             for p in self.players:
-                if p.side != exit_side:
+                if p.side != exit_side and p.connected:
                     p.score += 1
             ball.reset()
             await self.emit_event("score", {
