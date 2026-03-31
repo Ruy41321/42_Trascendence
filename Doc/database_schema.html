@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Database Schema - ft_transcendence</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 40px; }
+  h1 { text-align: center; color: #2d3436; margin-bottom: 30px; font-size: 24px; }
+  .schema { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
+  .table-card {
+    background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 280px; overflow: hidden; border: 2px solid #dfe6e9;
+  }
+  .table-header {
+    background: #2d3436; color: #fff; padding: 12px 16px;
+    font-weight: bold; font-size: 16px; text-align: center;
+  }
+  .table-header.users { background: #0984e3; }
+  .table-header.matches { background: #6c5ce7; }
+  .table-header.achievements { background: #00b894; }
+  .table-header.user_achievements { background: #e17055; }
+  .col { display: flex; justify-content: space-between; padding: 8px 16px;
+    border-bottom: 1px solid #f1f2f6; font-size: 14px; }
+  .col:hover { background: #f8f9fa; }
+  .col-name { font-weight: 600; color: #2d3436; }
+  .col-type { color: #636e72; font-size: 13px; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 4px;
+    font-size: 11px; font-weight: bold; margin-left: 4px; }
+  .pk { background: #ffeaa7; color: #d63031; }
+  .fk { background: #dfe6e9; color: #0984e3; }
+  .unique { background: #e0f7fa; color: #00838f; }
+  .nullable { color: #b2bec3; font-style: italic; }
+  .relations {
+    margin-top: 40px; background: #fff; border-radius: 8px; padding: 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 700px; margin-left: auto; margin-right: auto;
+  }
+  .relations h2 { color: #2d3436; margin-bottom: 16px; font-size: 18px; }
+  .rel { padding: 6px 0; font-size: 14px; color: #636e72; border-bottom: 1px solid #f1f2f6; }
+  .rel:last-child { border: none; }
+  .arrow { color: #0984e3; font-weight: bold; }
+  .footer { text-align: center; margin-top: 30px; color: #b2bec3; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>ft_transcendence — Database Schema</h1>
+
+<div class="schema">
+
+  <!-- USERS -->
+  <div class="table-card">
+    <div class="table-header users">users</div>
+    <div class="col"><span class="col-name">id <span class="badge pk">PK</span></span><span class="col-type">varchar(36)</span></div>
+    <div class="col"><span class="col-name">username <span class="badge unique">UQ</span></span><span class="col-type">varchar(36)</span></div>
+    <div class="col"><span class="col-name">email <span class="badge unique">UQ</span></span><span class="col-type">varchar(100)</span></div>
+    <div class="col"><span class="col-name">hashed_password</span><span class="col-type">varchar(255)</span></div>
+    <div class="col"><span class="col-name">login_42 <span class="badge unique">UQ</span></span><span class="col-type nullable">varchar(36) nullable</span></div>
+    <div class="col"><span class="col-name">wins</span><span class="col-type">integer (default: 0)</span></div>
+    <div class="col"><span class="col-name">losses</span><span class="col-type">integer (default: 0)</span></div>
+    <div class="col"><span class="col-name">created_at</span><span class="col-type">datetime</span></div>
+    <div class="col"><span class="col-name">updated_at</span><span class="col-type">datetime</span></div>
+  </div>
+
+  <!-- MATCHES -->
+  <div class="table-card">
+    <div class="table-header matches">matches</div>
+    <div class="col"><span class="col-name">id <span class="badge pk">PK</span></span><span class="col-type">varchar(36)</span></div>
+    <div class="col"><span class="col-name">player1_id <span class="badge fk">FK</span></span><span class="col-type">→ users.id</span></div>
+    <div class="col"><span class="col-name">player2_id <span class="badge fk">FK</span></span><span class="col-type">→ users.id</span></div>
+    <div class="col"><span class="col-name">player3_id <span class="badge fk">FK</span></span><span class="col-type nullable">→ users.id nullable</span></div>
+    <div class="col"><span class="col-name">player4_id <span class="badge fk">FK</span></span><span class="col-type nullable">→ users.id nullable</span></div>
+    <div class="col"><span class="col-name">winner_id <span class="badge fk">FK</span></span><span class="col-type">→ users.id</span></div>
+    <div class="col"><span class="col-name">score_player1</span><span class="col-type">integer</span></div>
+    <div class="col"><span class="col-name">score_player2</span><span class="col-type">integer</span></div>
+    <div class="col"><span class="col-name">score_player3</span><span class="col-type nullable">integer nullable</span></div>
+    <div class="col"><span class="col-name">score_player4</span><span class="col-type nullable">integer nullable</span></div>
+    <div class="col"><span class="col-name">played_at</span><span class="col-type">datetime</span></div>
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+  <div class="table-card">
+    <div class="table-header achievements">achievements</div>
+    <div class="col"><span class="col-name">id <span class="badge pk">PK</span></span><span class="col-type">varchar(36)</span></div>
+    <div class="col"><span class="col-name">name <span class="badge unique">UQ</span></span><span class="col-type">varchar(100)</span></div>
+    <div class="col"><span class="col-name">description</span><span class="col-type">varchar(255)</span></div>
+    <div class="col"><span class="col-name">icon</span><span class="col-type nullable">varchar(255) nullable</span></div>
+    <div class="col"><span class="col-name">category</span><span class="col-type">enum (combat)</span></div>
+    <div class="col"><span class="col-name">created_at</span><span class="col-type">datetime</span></div>
+  </div>
+
+  <!-- USER_ACHIEVEMENTS -->
+  <div class="table-card">
+    <div class="table-header user_achievements">user_achievements</div>
+    <div class="col"><span class="col-name">id <span class="badge pk">PK</span></span><span class="col-type">varchar(36)</span></div>
+    <div class="col"><span class="col-name">user_id <span class="badge fk">FK</span></span><span class="col-type">→ users.id</span></div>
+    <div class="col"><span class="col-name">achievement_id <span class="badge fk">FK</span></span><span class="col-type">→ achievements.id</span></div>
+    <div class="col"><span class="col-name">unlocked_at</span><span class="col-type">datetime</span></div>
+    <div class="col"><span class="col-name">progress</span><span class="col-type">integer (default: 0)</span></div>
+  </div>
+
+</div>
+
+<!-- RELATIONS -->
+<div class="relations">
+  <h2>Foreign Key Relationships</h2>
+  <div class="rel">matches.player1_id <span class="arrow">→</span> users.id</div>
+  <div class="rel">matches.player2_id <span class="arrow">→</span> users.id</div>
+  <div class="rel">matches.player3_id <span class="arrow">→</span> users.id <em class="nullable">(nullable)</em></div>
+  <div class="rel">matches.player4_id <span class="arrow">→</span> users.id <em class="nullable">(nullable)</em></div>
+  <div class="rel">matches.winner_id <span class="arrow">→</span> users.id</div>
+  <div class="rel">user_achievements.user_id <span class="arrow">→</span> users.id</div>
+  <div class="rel">user_achievements.achievement_id <span class="arrow">→</span> achievements.id</div>
+</div>
+
+<div class="footer">ft_transcendence — PostgreSQL 15 — Generated 2026-03-29</div>
+
+</body>
+</html>

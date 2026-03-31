@@ -384,7 +384,7 @@ class PongGameState:
                         _auth_host = os.getenv("AUTH_SERVICE_HOST", "auth-service")
                         _auth_port = os.getenv("AUTH_SERVICE_INTERNAL_PORT", "8000")
                         await client.post(
-                            f"http://{_auth_host}:{_auth_port}/api/v1/matches/", # API url
+                            f"https://{_auth_host}:{_auth_port}/api/v1/matches/", # API url
                             json=body,
                             headers={"Authorization": f"Bearer {p.token}"} # sends the winner's token to the auth service
                         )
