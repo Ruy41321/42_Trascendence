@@ -429,6 +429,27 @@ class PongGameState:
             else:                              # restore initial X position for horizontal paddles
                 p.x = 0.435
 
+    async def restart_match(self):
+        self.status = "playing"     # vai direttamente a playing
+        self.tick = 0
+        self.winner = None
+
+        self.ball.x = 0.5
+        self.ball.y = 0.5
+        self.ball.vx = 0.008
+        self.ball.vy = 0.004
+
+        for p in self.players:
+            if p.connected:         # resetta solo i player connessi
+                p.score = 0
+                p.votedToAbandon = False
+                p.current_direction = None
+                p.last_processed_input_id = -1
+                if p.side in ["left", "right"]:
+                    p.y = 0.435
+                else:
+                    p.x = 0.435
+
     async def emit_event(self, event_type: str, data: dict):
         """
         Broadcast a gameEvent message to all connected clients.
@@ -714,9 +735,10 @@ async def websocket_endpoint(ws: WebSocket):
                 await broadcast("lobbyUpdate", game.get_lobby_state())
             
             elif msg.type == "restartGame":
-                await game.reset()                                          # reset all game state
-                await game.emit_event("gameReset", {})                      # notify all clients to reset their local state
-                await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of empty lobby
+                await game.restart_match()
+                await game.emit_event("gameStart", {
+                    "playerCount": sum(1 for p in game.players if p.connected),
+                })     # notify all clients of empty lobby
 
             elif msg.type == "backToLobby":
                 if not player:
