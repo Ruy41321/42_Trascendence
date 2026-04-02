@@ -487,6 +487,7 @@ class PongGameState:
         free_slot.name = entry["name"]                 # assign name
         self.ws_to_player[entry["ws"]] = free_slot     # register new ws -> player mapping
         free_slot.user_id = entry.get("user_id")       # restore user_id from queue entry for auth-service match recording
+        free_slot.token = entry.get("token")           # restore JWT token
         await send_to(entry["ws"], "lobbyJoined", {"name": entry["name"]})  # notify promoted client he joined the lobby
         await send_to(entry["ws"], "playerAssigned", { # notify promoted client he was assigned to a Player slot
             "playerId": free_slot.id,
@@ -688,35 +689,66 @@ async def websocket_endpoint(ws: WebSocket):
                         "code": "ALREADY_CONNECTED",
                     })
                     continue
-                else:
-                    player = game.get_free_slot()               # find first available slot, returns player object or none
-                    if player and game.status in ["waiting", "paused"]:  # slot available and game accepts new players
-                        player.connected = True                 # mark slot as occupied
-                        player.name = parsed.playerName         # set display name
-                        game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion and ownership checks
-                        player.token = parsed.token             # saves the jwt token for auth-service match recording
-                        player.user_id = payload.get("sub")     # store user UUID for duplicate detection and match recording
-                        await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
-                        await send_to(ws, "playerAssigned", {   # confirm assignment to this client
-                            "playerId": player.id,
-                            "side": player.side,
-                            "name": player.name,
-                            "roomId": "main",                   # to be defined
-                            "gameStatus": game.status,
+
+                # RECONNECTION LOGIC: if game is paused/playing/finished, only allow reconnecting to own slot
+                reconnecting_player = next((p for p in game.players if p.user_id == token_user_id and not p.connected), None)
+                
+                if reconnecting_player:
+                    player = reconnecting_player
+                    player.connected = True
+                    player.name = parsed.playerName # update display name in case it changed
+                    game.ws_to_player[ws] = player
+                    player.token = parsed.token
+                    await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
+                    await send_to(ws, "playerAssigned", {   # confirm assignment to this client
+                        "playerId": player.id,
+                        "side": player.side,
+                        "name": player.name,
+                        "roomId": "main",
+                        "gameStatus": game.status,
+                    })
+                    
+                    # check if all original players are reconnected to resume the game
+                    disconn_players = [p for p in game.players if p.user_id is not None and not p.connected]
+                    if not disconn_players and game.status == "paused":
+                        game.status = "playing"
+                        game.last_activity_time = time.time()
+                        await game.emit_event("gameResumed", {
+                            "playerCount": sum(1 for p in game.players if p.connected),
                         })
-                        await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
+                    
+                    await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
+                    continue
+                else:
+                    # New player joining
+                    if game.status in ["playing", "paused", "finished"]:
+                        # cannot join as new player during active/paused/finished match, assign spectator
+                        game.spectator_connections[ws] = parsed.playerName
+                        game.spectators = [
+                            {"name": n} for n in game.spectator_connections.values()
+                        ]
+                        await send_to(ws, "spectatorAssigned", {"name": parsed.playerName})
+                        await broadcast("lobbyUpdate", game.get_lobby_state())
                     else:
-                        if game.status in ["playing", "paused"]:
-                            # game is in progress — no free slot available for a new player, assign as spectator automatically
-                            game.spectator_connections[ws] = parsed.playerName  # register spectator ws -> name
-                            game.spectators = [
-                                {"name": n} for n in game.spectator_connections.values()  # rebuild serializable spectator list
-                            ]
-                            await send_to(ws, "spectatorAssigned", {"name": parsed.playerName})  # confirm spectator role to this client
-                            await broadcast("lobbyUpdate", game.get_lobby_state())               # notify all clients of new spectator
+                        player = game.get_free_slot()
+                        if player: # slot available and game is waiting
+                            player.connected = True                 # mark slot as occupied
+                            player.name = parsed.playerName         # set display name
+                            game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion and ownership checks
+                            player.token = parsed.token             # saves the jwt token for auth-service match recording
+                            player.user_id = payload.get("sub")     # store user UUID for duplicate detection and match recording
+                            await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
+                            await send_to(ws, "playerAssigned", {   # confirm assignment to this client
+                                "playerId": player.id,
+                                "side": player.side,
+                                "name": player.name,
+                                "roomId": "main",                   # to be defined
+                                "gameStatus": game.status,
+                            })
+                            await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
                         else:
                             # game not in progress, all slots taken — add to waiting queue
-                            game.lobby_queue.append({"name": parsed.playerName, "ws": ws, "user_id": token_user_id})  # store name, ws and uuid for promotion
+                            game.lobby_queue.append({"name": parsed.playerName, "ws": ws, "user_id": token_user_id, "token": parsed.token})  # store name, ws and uuid for promotion
                             await send_to(ws, "lobbyJoined", {"name": parsed.playerName})         # confirm lobby entry
                             await broadcast("lobbyUpdate", game.get_lobby_state())               # notify all clients of queue update
 
@@ -812,17 +844,21 @@ async def websocket_endpoint(ws: WebSocket):
             # to this player, so we skip the cleanup to avoid overwriting the new session's state
             player.connected = False            # free up the slot
             player.current_direction = None     # stop any ongoing movement
-            player.name = "Anonymous"           # clear display name
-            player.token = None                 # clear JWT
-            player.user_id = None               # clear UUID so the slot is available for reconnection
             player.votedToAbandon = False        # clear abandon vote
-            if game.status == "playing":
-                game.status = "paused"                      # pause the game so remaining players can wait for reconnection
-                game.last_activity_time = time.time()       # start inactivity timer from this moment
+            
+            if game.status in ["playing", "paused", "finished"]:
+                if game.status != "finished":
+                    game.status = "paused"                      # pause the game so remaining players can wait for reconnection
+                    game.last_activity_time = time.time()       # start inactivity timer from this moment
                 await game.emit_event("playerDisconnected", {  # notify remaining clients that a player left
                     "playerId": player.id,
                     "name": player.name
                 })
+            else:
+                player.token = None                 # clear JWT
+                player.user_id = None               # clear UUID so the slot is available for reconnection
+                # only clear name if not in an active match, so disconnected players retain their name on the canvas
+                player.name = "Anonymous"           # clear display name
         game.ws_to_player.pop(ws, None)                # remove ws -> player mapping, pop with None avoids KeyError
         if ws in game.spectator_connections:            # check if disconnected client was a spectator
             del game.spectator_connections[ws]          # remove key from spectator dict
