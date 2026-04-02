@@ -118,6 +118,10 @@ const overlayText = computed(() => {
     case 'countdown':
       return 'Get Ready!';
     case 'paused':
+      const disconnPlayer = props.gameState?.players.find(p => !p.connected && p.name && p.name !== 'Anonymous');
+      if (disconnPlayer) {
+        return `PAUSED - ${disconnPlayer.name} disconnected`;
+      }
       return 'PAUSED - Player disconnected';
     case 'finished':
       // Check if the current player is the winner
@@ -402,7 +406,7 @@ function drawPlayerIndicators(players) {
       ctx.value.fillText('YOU', x, y);
     }
     // If player was part of the game but disconnected (has a name but not connected)
-    else if (!player.connected && player.name) {
+    else if (!player.connected && player.name && player.name !== 'Anonymous') {
       ctx.value.fillStyle = '#ff0000';
       ctx.value.fillText('DISCONNECTED', x, y);
     }
