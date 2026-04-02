@@ -197,6 +197,11 @@ export function useWebSocket() {
         break;
 
       case 'gameEvent':
+        // Filter game events if the user has not yet joined as a player, spectator, or entered the lobby
+        if (!myPlayer.value && !isSpectator.value && !inLobby.value) {
+          break;
+        }
+
         console.log('🎯 Game Event:', payload);
         lastEvent.value = payload;
 

@@ -163,6 +163,9 @@
   
   // CORE LOGIC: Determines if we show the Lobby or the Game
   const showLobby = computed(() => {
+	// Show lobby if the user hasn't identified themselves yet
+	if (!myPlayer.value && !isSpectator.value && !inLobby.value) return true;
+
 	const status = gameState.value?.status;
   const activeGameStatuses = new Set(['countdown', 'playing', 'paused', 'finished']);
 
@@ -177,9 +180,6 @@
 	
 	// Show lobby if the server says we're in lobby mode
 	if (status === 'lobby' || status === 'waiting') return true;
-	
-	// Show lobby if the user hasn't identified themselves yet
-	if (!myPlayer.value && !isSpectator.value && !inLobby.value) return true;
 	
 	return false;
   });
