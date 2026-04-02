@@ -1,246 +1,170 @@
-# 42 Transcendence
+*This project has been created as part of the 42 curriculum by abkhefif, atucci, lpennisi, tcaccava.*
 
-*This project has been created as part of the 42 curriculum by Luigi, Alessio, Abdallah, Tobia.*
-
----
+# ft_transcendence
 
 ## Description
 
-42 Transcendence is a web application project built as part of the 42 school curriculum. The project aims to create an engaging web-based platform featuring real-time multiplayer gaming capabilities combined with a modern, responsive user interface.
+**ft_transcendence** is the final project of the 42 common core.
+The **goal** is to create a web-based platform for users to play Pong in real-time against others, featuring a complete user management system and a modern functional interface.
 
 ### Key Features
-- Real-time multiplayer web-based game with WebSocket support
-- User authentication and profile management
-- Responsive and modern frontend design
-- Robust backend API system with secure endpoints
-- Containerized deployment with Docker
-- Progressive Web App capabilities
-- Multi-user concurrent support
-- Custom design system with reusable components
 
----
-
-## Team Information
-
-| Team Member | Role(s) | Responsibilities |
-|-------------|---------|-----------------|
-| **Luigi** | Game Development | Game logic, mechanics, real-time multiplayer implementation, WebSocket integration |
-| **Alessio** | Frontend Developer | UI/UX design, responsive layout, custom design system, PWA features, browser compatibility |
-| **Abdallah** | Backend Developer | Login system, Database schema design, Docker containerization, API infrastructure |
-| **Tobia** | Backend Developer | Login system, Database schema design, Docker containerization, API infrastructure |
-
----
-
-## Project Management
-
-### Work Organization
-- **Task Distribution:** Each team member is responsible for their designated technical area (Game, Frontend, Backend)
-- **Meetings:** Regular synchronization meetings to ensure component integration
-- **Git Workflow:** Feature branches with meaningful commit messages from all team members
-
-### Project Management Tools
-*To be finalized during project kickoff:*
-- Task tracking: GitHub Issues or Trello
-- Communication: Discord or Slack
-- Documentation: Shared wiki/documentation
-
-### Communication Channels
-*To be established at project start:*
-- Primary: Discord/Slack
-- Documentation sharing: GitHub/Google Drive
-- Code reviews: GitHub Pull Requests
-
----
-
-## Technical Stack
-
-| Category | Technology | Justification |
-|----------|-----------|---------------|
-| **Frontend Framework** | *To be determined* | Modern, responsive web application requirements |
-| **Backend Framework** | *To be determined* | Robust API and real-time feature support |
-| **Database** | *To be determined* | User data, game statistics, and application state management |
-| **WebSocket** | *To be determined* | Real-time multiplayer game synchronization |
-| **Containerization** | Docker | Single-command deployment and environment consistency |
-| **Version Control** | Git | Collaborative development and version tracking |
-| **CSS Framework** | *To be determined* | Responsive design and styling solution |
-
----
-
-## Database Schema
-
-*[PLACEHOLDER - To be defined during backend development]*
-
-The database will include the following main entities:
-
-- **Users** - User accounts, authentication, profile information
-- **Games** - Game sessions, state, player references
-- **Game Statistics** - Win/loss records, player rankings
-- **API Keys** - Secured API access management
-
-*Detailed schema with relationships, field definitions, and data types will be provided once database design is finalized.*
+* **Real-time Multiplayer:** High-performance gameplay via WebSockets.
+* **Social System:** User profiles, match history, and statistics.
+* **Responsive Design:** A custom-made UI that works across all devices.
+* **Deployment:** Fully containerized architecture using Docker.
 
 ---
 
 ## Instructions
 
 ### Prerequisites
-- Docker & Docker Compose
-- Git
-- Node.js (or equivalent based on backend choice)
-- npm/yarn or equivalent package manager
 
-### Installation & Setup
+The following tools must be installed to run the project:
 
-*[PLACEHOLDER - Detailed installation steps will be provided once project structure is initialized]*
+* **Docker & Docker Compose** (v.29.1.3 or later)
+* **Make** (for build automation)
+* **Git** (to clone the repository)
 
-1. Clone the repository:
+### Installation & Execution
+
+Follow these steps to set up the project locally:
+
+1. **Clone the repository:**
+   
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Ruy41321/42_Trascendence.git
    cd 42_Transcendence
    ```
-
-2. Configure environment variables:
+2. **Environment Configuration:**
+   
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your specific configuration
    ```
-
-3. Start the application with Docker:
+3. **Launch the Application:**
+   
    ```bash
-   docker-compose up
+   make up
    ```
+4. **Access the Project:**
+   - `https://localhost` (Port 443)
 
-4. Access the application:
-   - Frontend: `http://localhost:3000`
-   - Backend API: `http://localhost:8000` (example)
+---
+
+## Resources
+
+#todo
+
+---
+
+## Team Information
+
+Below is the information regarding the team members and their specific roles:
+
+| Member       | Assigned Role(s)    | Responsibilities                                                                        |
+|:------------ |:------------------- |:--------------------------------------------------------------------------------------- |
+| **Luigi**    | PO, PM, Game Fronted Dev | Ensure the final product meets the project requirements. Develop the frontend rendering of the game. |
+| **Alessio**  | Frontend Dev  | #todo |
+| **Abdallah** | Tech Lead, Game Backend Dev   | #todo   |
+| **Tobia**    | Auth Backend Dev   | #todo    |
+
+---
+
+## Project Management
+
+### Work Organization
+
+* **Task Distribution:** Work was split by technical domain (Frontend, Backend, Game) with tasks tracked via `Github Issues`.
+* **Meetings:** The team held regular synchronization meetings to ensure smooth integration, using `Discord` .
+
+### Communication & Tools
+
+* **Management Tools:** GitHub Issues.
+* **Communication:** Discord and Whatsapp were used as the primary channel for daily updates.
+
+---
+
+## Technical Stack
+
+| Category     | Technology    | Justification                                            |
+|:------------ |:------------- |:-------------------------------------------------------- |
+| **Frontend** | Vue.js | Used as frontend framework for its reactivity and component-based architecture |
+| **Backend**  | #todo       | #todo                      |
+| **Database** | #todo      | #todo       |
+| **DevOps**   | Docker        | Chosen for environment consistency and deployment speed. |
+
+---
+
+## Database Schema
+
+### Structure Description
+
+#todo
+
+### Tables and Relationships
+
+#todo
+
+### Key Fields
+
+#todo
 
 ---
 
 ## Features List
 
-*[PLACEHOLDER - Complete feature list will be compiled once development begins]*
-
-| Feature | Description | Assigned To | Status |
-|---------|-------------|-------------|--------|
-| *To be updated* | | | |
+| Feature            | Member(s)      | Functionality Description                     |
+|:------------------ |:-------------- |:--------------------------------------------- |
+| **Base Web-App Frontend** | Atucci & Lpennisi | Frontend implementation for the web application. |
+| **Game Rendering** | Luigi          | Core game rendering based on events sent by game backend. |
+| **Game Backend** | Tcaccava | Backend logic for game mechanics, physics, and real-time synchronization. |
+| **Auth System**    | Abdallah       | Secure user registration and login backend. |
+| **Auth API**       | Abdallah       | API endpoints for authentication. |
 
 ---
 
 ## Modules
 
-### Target Points: 14/14 ✅
+**Total Points: 14/14** 
 
-#### Gaming and User Experience (Luigi) - 8 points
-- **Implement real-time features using WebSockets** (Major - 2 pts)
-  - Real-time updates across clients, graceful connection handling, efficient message broadcasting
-  
-- **Implement a complete web-based game** (Major - 2 pts)
-  - Real-time multiplayer gameplay with clear rules and win/loss conditions
-  
-- **Remote players support** (Major - 2 pts)
-  - Enable two players on separate computers to play live, handle network latency and disconnections
-  
-- **Multiplayer game (3+ players)** (Major - 2 pts)
-  - Support for simultaneous play of three or more players with proper synchronization
+| Module                 | Type  | Member         | Justification & Implementation                                                                        |
+|:---------------------- |:----- |:-------------- |:----------------------------------------------------------------------------------------------------- |
 
-#### Backend Development (Abdallah & Tobia) - 3 points
-- **Use a backend framework** (Minor - 1 pt)
-  - Use a backend framework (Express, Fastify, NestJS, Django, etc.).
-  
-- **Public API with security** (Major - 2 pts)
-  - Secured API key management, rate limiting, documentation, minimum 5 endpoints (GET, POST, PUT, DELETE)
-
-#### Frontend Development (Alessio) - 3 points
-- **Use a frontend framework** (Minor - 1 pt)
-  - Modern responsive web framework implementation
-  
-- **Custom-made design system** (Minor - 1 pt)
-  - Reusable components, color palette, typography, icons (minimum 10 components)
-  
-- **Progressive Web App (PWA)** (Minor - 1 pt)
-  - Offline support and installability
+#TODO 
 
 ---
 
 ## Individual Contributions
 
-### Luigi - Game Development
-*[PLACEHOLDER - To be detailed upon completion of work]*
-- Implementation of core game logic and mechanics
-- WebSocket integration for real-time multiplayer
-- Player synchronization and game state management
-- Handling remote players and connection management
+### Luigi
 
-### Alessio - Frontend Development
-*[PLACEHOLDER - To be detailed upon completion of work]*
-- UI/UX design and responsive layout implementation
-- Frontend framework setup and component architecture
-- Custom design system creation with reusable components
-- PWA features and cross-browser compatibility optimization
+* **Contributions:** Managed the github repository and Implemented the core game physics and WebSocket synchronization logic.
+* **Challenges:** 
+1. Synchronizing game state between client and server has been the major challenge, it has been overcome by implementing a robust event-driven architecture with a rigorous protocol for state updates.
+2. Maintaining a clean and working repository has been a challenge when multiple branches and features were being developed simultaneously, it has been overcome by enforcing the use of Github Issues.
 
-### Abdallah - Backend Development
-*[PLACEHOLDER - To be detailed upon completion of work]*
-- Docker containerization and infrastructure setup
-- Backend logic for game integration and login with framework
-- Database implementation
-- API infrastructure and endpoint creation
-- API Documentation
-- Authentication and login/registration system implementation
+### Alessio
 
-### Tobia - Backend Development
-*[PLACEHOLDER - To be detailed upon completion of work]*
-- Docker containerization and infrastructure setup
-- Backend logic for game integration and login with framework
-- Database implementation
-- API infrastructure and endpoint creation
-- API Documentation
-- Authentication and login/registration system implementation
----
+* **Contributions:** #todo
+* **Challenges:** #todo
 
-## Resources
+### Abdallah
 
-### Documentation & References
-*To be compiled during development with relevant links to:*
-- Framework documentation
-- WebSocket libraries and examples
-- Database design patterns
-- Docker best practices
-- REST API design guidelines
+* **Contributions:** #todo
+* **Challenges:** #todo
 
-### AI Usage
-*[PLACEHOLDER - AI implementation tracking]*
+### Tobia
 
-This section will document:
-- Which tasks leveraged AI assistance
-- Specific AI tools used (ChatGPT, GitHub Copilot, etc.)
-- Scope of AI assistance (code generation, debugging, documentation, etc.)
-- How AI-generated content was validated and integrated
+* **Contributions:** #todo
+* **Challenges:** #todo
 
 ---
 
-## Privacy Policy & Terms of Service
 
-*[PLACEHOLDER - To be implemented as required]*
 
-Accessible links to Privacy Policy and Terms of Service will be provided in the application footer with relevant and appropriate content for the project.
+## AI Usage
 
----
+AI tools were used during the project for the following tasks:
 
-## Project Status
-
-🚀 **Current Status:** In Planning Phase
-
-- [x] Team roles assigned
-- [x] Modules selected (14 points)
-- [x] Initial README created
-- [ ] Backend infrastructure setup
-- [ ] Database design finalized
-- [ ] Frontend framework initialization
-- [ ] Game development begins
-- [ ] Integration phase
-- [ ] Testing and deployment
-
----
-
-**Last Updated:** January 13, 2026  
-**Project Start Date:** *To be announced*
+#todo
