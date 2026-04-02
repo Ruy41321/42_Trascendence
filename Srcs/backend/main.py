@@ -7,7 +7,7 @@ from typing import Literal, Optional, Set , Union   # type hints
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # web framework + WS support
 from pydantic import BaseModel     # data validation library
 from jose import jwt               # jose is a python library used to work with jwt tokens
-import httpx
+import httpx                       # async HTTP client — used to call auth-service REST API
 
 # =============================================================================
 # INPUT VALIDATION with PYDANTIC
@@ -192,7 +192,7 @@ class PongGameState:
     """
 
     def __init__(self):
-        self.status = "waiting"     # "waiting" | "countdown" | "playing" | "finished"
+        self.status: Literal["waiting", "playing", "paused", "finished"] = "waiting"     # "waiting" | "countdown" | "playing" | "finished"
         self.tick = 0               # increments every physics update, used for reconciliation timing
         self.winner = None          # player id of the winner, None during play
         self.ball = Ball()          # single ball instance
@@ -205,8 +205,10 @@ class PongGameState:
         self.spectators = []        # list of spectator dicts {"name" key : name value} , will be broadcasted to clients
         self.spectator_connections: dict = {}       # maps ws -> name, keeps track of spectator WebSocket connections for disconnect handling            
         self.connections: Set[WebSocket] = set()    # set of all active WebSocket connections
-        self.lobby_queue: list = []  # list of dicts {"name": str, "ws": WebSocket} waiting for a slot
+        self.lobby_queue: list = []  # list of dicts {"name": str, "ws": WebSocket, "user_id": str} waiting for a slot
         self.ws_to_player: dict = {}  # maps ws -> Player, used to promote queued clients on disconnect
+        self.last_activity_time = time.time()  # timestamp of last physics tick — used to detect inactivity and trigger auto-reset
+        self.slot_lock = asyncio.Lock()         # asyncio lock to prevent race conditions when assigning player slots on rapid reconnect
 
     def get_free_slot(self) -> Optional["Player"]:
         """
@@ -319,9 +321,9 @@ class PongGameState:
             for p in self.players
         )                                           # generator expression: True if a connected player owns that side
 
-        if side_has_player:                         # goal: award points and reset ball
+        if side_has_player:                         # goal: award points to all connected players on other sides
             for p in self.players:
-                if p.side != exit_side and p.connected:
+                if p.side != exit_side and p.connected:  # only connected players score — disconnected Anonymous slots are excluded
                     p.score += 1
             ball.reset()
             await self.emit_event("score", {
@@ -333,7 +335,7 @@ class PongGameState:
             })
             await self.check_winner()
 
-        else:                                       # no player on that side: bounce                                   
+        else:                                       # no player on that side: bounce instead of scoring                                   
             if exit_side == "left":
                 ball.vx = abs(ball.vx)              # force positive (ball goes right)
                 ball.x = ball.radius               # prevent tunneling : push ball just inside left wall
@@ -357,6 +359,7 @@ class PongGameState:
         for p in self.players:
             if p.score >= 10:                        # winning condition
                 self.status = "finished"            # stop the game loop from advancing physics
+                self.last_activity_time = time.time()  # record finish time for inactivity timeout
                 self.winner = p.id                  # record winner id
                 await self.emit_event("gameOver", { # notify all clients
                     "winner": p.id,                 # winner's slot id
@@ -381,15 +384,15 @@ class PongGameState:
                         if len(connected_players) == 4: # 4 players
                             body["player4_id"] = connected_players[3].user_id
                             body["score_player4"] = connected_players[3].score
-                        _auth_host = os.getenv("AUTH_SERVICE_HOST", "auth-service")
-                        _auth_port = os.getenv("AUTH_SERVICE_INTERNAL_PORT", "8000")
+                        _auth_host = os.getenv("AUTH_SERVICE_HOST", "auth-service")   # read from env, fallback to docker service name
+                        _auth_port = os.getenv("AUTH_SERVICE_INTERNAL_PORT", "8000")  # read from env, fallback to internal port
                         await client.post(
                             f"http://{_auth_host}:{_auth_port}/api/v1/matches/", # API url
                             json=body,
                             headers={"Authorization": f"Bearer {p.token}"} # sends the winner's token to the auth service
                         )
                 except Exception as e:
-                    print(f"⚠️  Failed to record match to auth-service: {e}")
+                    print(f"⚠️  Failed to record match to auth-service: {e}")  # non-fatal: game continues even if logging fails
                 return                              # stop checking after first winner found
 
     async def reset(self):
@@ -430,25 +433,31 @@ class PongGameState:
                 p.x = 0.435
 
     async def restart_match(self):
-        self.status = "playing"     # vai direttamente a playing
-        self.tick = 0
-        self.winner = None
+        """
+        Restart the match immediately without returning to the lobby.
+        Unlike reset(), keeps all currently connected players in their slots
+        and transitions directly to playing status — used by the 'Play Again' flow.
+        Only resets score, ball, tick and movement state for connected players.
+        """
+        self.status = "playing"     # transition directly to playing, skipping the lobby
+        self.tick = 0               # reset tick counter
+        self.winner = None          # clear previous winner
 
-        self.ball.x = 0.5
-        self.ball.y = 0.5
-        self.ball.vx = 0.008
-        self.ball.vy = 0.004
+        self.ball.x = 0.5           # reset ball to center x
+        self.ball.y = 0.5           # reset ball to center y
+        self.ball.vx = 0.008        # reset ball horizontal velocity
+        self.ball.vy = 0.004        # reset ball vertical velocity
 
         for p in self.players:
-            if p.connected:         # resetta solo i player connessi
-                p.score = 0
-                p.votedToAbandon = False
-                p.current_direction = None
-                p.last_processed_input_id = -1
+            if p.connected:         # only reset connected players — disconnected slots are left untouched
+                p.score = 0                         # reset score
+                p.votedToAbandon = False            # clear abandon vote
+                p.current_direction = None          # stop any ongoing movement
+                p.last_processed_input_id = -1      # reset reconciliation counter
                 if p.side in ["left", "right"]:
-                    p.y = 0.435
+                    p.y = 0.435                     # restore initial Y for vertical paddles
                 else:
-                    p.x = 0.435
+                    p.x = 0.435                     # restore initial X for horizontal paddles
 
     async def emit_event(self, event_type: str, data: dict):
         """
@@ -477,9 +486,11 @@ class PongGameState:
         free_slot.connected = True                     # mark slot as occupied
         free_slot.name = entry["name"]                 # assign name
         self.ws_to_player[entry["ws"]] = free_slot     # register new ws -> player mapping
+        free_slot.user_id = entry.get("user_id")       # restore user_id from queue entry for auth-service match recording
         await send_to(entry["ws"], "lobbyJoined", {"name": entry["name"]})  # notify promoted client he joined the lobby
         await send_to(entry["ws"], "playerAssigned", { # notify promoted client he was assigned to a Player slot
             "playerId": free_slot.id,
+            "user_id" : free_slot.user_id,
             "side": free_slot.side,
             "name": free_slot.name,
             "roomId": "main",
@@ -564,12 +575,22 @@ async def world_loop():
 
         if game.status == "playing":
             await game.update_physics()                   # advance ball and paddles
-
+            game.last_activity_time = start               # update activity timestamp on every physics tick
+        elif game.status in ["paused", "finished"]:
+            # inactivity timeout: if game has been paused or finished for more than 15 seconds
+            # with no activity, auto-reset to waiting and notify all clients
+            if start - game.last_activity_time > 15:
+                await game.reset()
+                game.last_activity_time = time.time()  # reset activity timestamp to avoid immediate re-trigger
+                await broadcast("lobbyUpdate", game.get_lobby_state())
+                await game.emit_event("gameReset", {"reason": "timeout"})
+                continue                               # skip broadcast this tick, state is already reset
         payload_json = json.dumps(game.get_payload())   # serialize once for all clients
 
         if game.connections:
             await asyncio.gather(                   # send to all clients concurrently
-                *[ws.send_text(payload_json) for ws in list(game.connections)]  # positional unpacking + list comprehension unpacked into gather: send_text is an awaitable func,so if you call it without await it return a coroutine object. The list comprehension build a list of this coroutines,and the * unpacks them as arguments for gather,which executes them concurrently.
+                *[ws.send_text(payload_json) for ws in list(game.connections)],  # list comprehension builds coroutine list, * unpacks into gather
+                  return_exceptions = True          # individual send failures are returned as values, not raised — prevents a dead WebSocket from crashing other clients
             )
 
         wait = loop_time - (time.time() - start)    # remaining time in this tick
@@ -592,11 +613,14 @@ async def broadcast(type: str, payload: dict):
     Used for events that all clients need to receive simultaneously,
     such as lobbyUpdate — as opposed to send_to which targets one client.
     Reuses the same serialized string for all clients to avoid redundant work.
+    return_exceptions=True prevents a single dead WebSocket from propagating
+    an exception into the caller's coroutine and accidentally disconnecting other players.
     """
     msg = json.dumps({"type": type, "payload": payload})    # serialize once for all recipients
     if game.connections:
         await asyncio.gather(                               # send concurrently to all clients
-            *[ws.send_text(msg) for ws in list(game.connections)]  # list comprehension unpacked into gather
+            *[ws.send_text(msg) for ws in list(game.connections)],  # list comprehension unpacked into gather
+              return_exceptions = True  # dead WebSocket failures are silently ignored — they will be cleaned up by their own coroutine's except block
         )
 
 
@@ -615,6 +639,10 @@ async def websocket_endpoint(ws: WebSocket):
     """
     await ws.accept()               # complete WebSocket handshake
     game.connections.add(ws)        # register connection for broadcasts
+    await ws.send_text(json.dumps({  # send current lobby state immediately on connect so the client doesn't wait for the next broadcast
+        "type": "lobbyUpdate",
+        "payload": game.get_lobby_state()
+    }))
     player: Optional[Player] = None # will be assigned on joinLobby. Same of Union[Player, None] = None
 
     try:
@@ -625,7 +653,7 @@ async def websocket_endpoint(ws: WebSocket):
 
             if msg.type == "joinLobby":
                 parsed = JoinLobbyPayload(**msg.payload)    # validate joinLobby-specific payload
-                if not parsed.token:
+                if not parsed.token:                        # token is required — unauthenticated clients cannot join as players
                     await send_to(ws, "error", {
                         "message": "Authentication required to join as player",
                         "code": "AUTH_REQUIRED",
@@ -633,37 +661,41 @@ async def websocket_endpoint(ws: WebSocket):
                     continue
 
                 try:
-                    payload = jwt.get_unverified_claims(parsed.token)
+                    payload = jwt.get_unverified_claims(parsed.token)  # decode JWT payload without verifying signature — verification is auth-service's responsibility
                     if not payload.get("sub"):
-                        raise ValueError("Missing sub claim")
+                        raise ValueError("Missing sub claim")           # sub claim contains the user UUID
                 except Exception:
-                    await send_to(ws, "error", {
+                    await send_to(ws, "error", {                        # token is malformed or missing required claims
                         "message": "Invalid token",
                         "code": "INVALID_TOKEN",
                     })
                     continue
 
-                # check for duplicate name among connected players and lobby queue
-                name_taken = any(                                    # any() with generator expression: True if at least one matches
-                    p.name == parsed.playerName and p.connected
+                token_user_id = payload.get("sub")  # extract user UUID from token payload
+
+                # check if this user is already in the game or in the queue — identified by UUID, not by name
+                already_connected = any(
+                    p.user_id == token_user_id and p.connected
                     for p in game.players
                 ) or any(
-                    e["name"] == parsed.playerName
+                    e.get("user_id") == token_user_id
                     for e in game.lobby_queue
                 )
-                if name_taken:                              # the name is a duplicate
-                    await send_to(ws, "error", {            # send duplicate error "name taken"
-                        "message": "Name already taken",
-                        "code": "NAME_TAKEN",
+
+                if already_connected:               # same user cannot occupy two slots simultaneously
+                    await send_to(ws, "error", {
+                        "message": "You are already in the lobby",
+                        "code": "ALREADY_CONNECTED",
                     })
-                else:                                       # the name is not taken
+                    continue
+                else:
                     player = game.get_free_slot()               # find first available slot, returns player object or none
-                    if player:                                  # if there is an available one
+                    if player and game.status in ["waiting", "paused"]:  # slot available and game accepts new players
                         player.connected = True                 # mark slot as occupied
                         player.name = parsed.playerName         # set display name
-                        game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion
-                        player.token = parsed.token          # saves the jwt token
-                        player.user_id = payload.get("sub")  # extract uuid from payload
+                        game.ws_to_player[ws] = player          # register ws -> player mapping for queue promotion and ownership checks
+                        player.token = parsed.token             # saves the jwt token for auth-service match recording
+                        player.user_id = payload.get("sub")     # store user UUID for duplicate detection and match recording
                         await send_to(ws, "lobbyJoined", {"name": player.name})  # confirm lobby entry before slot assignment
                         await send_to(ws, "playerAssigned", {   # confirm assignment to this client
                             "playerId": player.id,
@@ -674,21 +706,37 @@ async def websocket_endpoint(ws: WebSocket):
                         })
                         await broadcast("lobbyUpdate", game.get_lobby_state())  # notify ALL clients of updated lobby
                     else:
-                        game.lobby_queue.append({"name": parsed.playerName, "ws": ws})  # add to waiting queue
-                        await send_to(ws, "lobbyJoined", {"name": parsed.playerName})    # confirm lobby entry
-                        await broadcast("lobbyUpdate", game.get_lobby_state())          # braodcasts the lobby state
+                        if game.status in ["playing", "paused"]:
+                            # game is in progress — no free slot available for a new player, assign as spectator automatically
+                            game.spectator_connections[ws] = parsed.playerName  # register spectator ws -> name
+                            game.spectators = [
+                                {"name": n} for n in game.spectator_connections.values()  # rebuild serializable spectator list
+                            ]
+                            await send_to(ws, "spectatorAssigned", {"name": parsed.playerName})  # confirm spectator role to this client
+                            await broadcast("lobbyUpdate", game.get_lobby_state())               # notify all clients of new spectator
+                        else:
+                            # game not in progress, all slots taken — add to waiting queue
+                            game.lobby_queue.append({"name": parsed.playerName, "ws": ws, "user_id": token_user_id})  # store name, ws and uuid for promotion
+                            await send_to(ws, "lobbyJoined", {"name": parsed.playerName})         # confirm lobby entry
+                            await broadcast("lobbyUpdate", game.get_lobby_state())               # notify all clients of queue update
 
             elif msg.type == "startGame":
-                parsed = StartGamePayload(**msg.payload)    # validate startGame payload
+                was_paused = game.status == "paused"        # detect if resuming from pause rather than starting fresh
                 game.status = "playing"                     # transition game to playing state
-                await game.emit_event("gameStart", {            # notify all clients the game has started
-                    "playerCount": sum(1 for p in game.players if p.connected),  # generator expression: count connected players
-                })
+                game.last_activity_time = time.time()       # reset inactivity timer on game start
+                if was_paused:
+                    await game.emit_event("gameResumed", {  # notify clients that a paused game is resuming — different from a fresh start
+                        "playerCount": sum(1 for p in game.players if p.connected),
+                    })
+                else:
+                    await game.emit_event("gameStart", {    # notify all clients the game has started fresh
+                        "playerCount": sum(1 for p in game.players if p.connected),  # generator expression: count connected players
+                    })
 
             elif msg.type == "move":
                 parsed = MovePayload(**msg.payload)         # validate move payload
                 if player:
-                    player.current_direction = parsed.direction         # saves current direction (None = stop),so the functio move read the direction and moves the paddle until None arrives: this guarantees smooth paddle movement
+                    player.current_direction = parsed.direction         # saves current direction (None = stop),so the function move reads the direction and moves the paddle until None arrives: this guarantees smooth paddle movement
                     player.last_processed_input_id = parsed.inputId     # record for reconciliation echo
 
             elif msg.type == "voteAbandon":
@@ -713,61 +761,76 @@ async def websocket_endpoint(ws: WebSocket):
                 await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of new spectator
 
             elif msg.type == "leaveSpectator":
-                if ws in game.spectator_connections:                         # remove only this spectator
-                    del game.spectator_connections[ws]
-                    game.spectators = [
+                if ws in game.spectator_connections:                         # only act if this ws is actually registered as a spectator
+                    del game.spectator_connections[ws]                       # remove spectator from tracking dict
+                    game.spectators = [                                      # rebuild serializable spectator list without this client
                         {"name": n} for n in game.spectator_connections.values()
                     ]
-                    await broadcast("lobbyUpdate", game.get_lobby_state())
+                    await broadcast("lobbyUpdate", game.get_lobby_state())   # notify all clients that spectator left
 
             elif msg.type == "leaveLobby":
-                if player:
-                    player.connected = False
-                    player.current_direction = None
-                    player.name = "Anonymous"
-                    player.score = 0
-                    player.token = None
-                    player.user_id = None
-                    player.votedToAbandon = False
-                game.ws_to_player.pop(ws, None)
-                game.lobby_queue = [e for e in game.lobby_queue if e["ws"] != ws]
-                await game.promote_from_queue()
-                await broadcast("lobbyUpdate", game.get_lobby_state())
+                if player:                              # only clean up if this ws was registered as a player
+                    player.connected = False            # free the slot
+                    player.current_direction = None     # stop any ongoing movement
+                    player.name = "Anonymous"           # clear display name
+                    player.score = 0                    # reset score
+                    player.token = None                 # clear JWT
+                    player.user_id = None               # clear UUID so the slot is fully available
+                    player.votedToAbandon = False        # clear abandon vote
+                game.ws_to_player.pop(ws, None)                             # remove ws -> player mapping
+                game.lobby_queue = [e for e in game.lobby_queue if e["ws"] != ws]  # remove from queue if present
+                await game.promote_from_queue()                             # fill freed slot from queue if available
+                await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients
             
             elif msg.type == "restartGame":
-                await game.restart_match()
-                await game.emit_event("gameStart", {
+                await game.restart_match()                  # reset scores and ball, keep connected players in their slots
+                await game.emit_event("gameStart", {        # notify all clients that a new match is starting immediately
                     "playerCount": sum(1 for p in game.players if p.connected),
-                })     # notify all clients of empty lobby
+                })
 
             elif msg.type == "backToLobby":
-                if not player:
+                if not player:                              # only active players can trigger a lobby reset
                     await send_to(ws, "error", {
                         "message": "Only active players can reset match to lobby",
                         "code": "BACK_TO_LOBBY_NOT_PLAYER",
                     })
                     continue
-                if game.status != "finished":
+                if game.status != "finished":               # back to lobby is only valid after a match has ended
                     await send_to(ws, "error", {
                         "message": "Back to lobby is available only after match end",
                         "code": "BACK_TO_LOBBY_NOT_FINISHED",
                     })
                     continue
-                await game.reset()                                          # reset all game state
+                await game.reset()                                          # full reset: disconnect all players, clear all state
                 await game.emit_event("gameReset", {})                      # notify all clients to reset their local state
                 await broadcast("lobbyUpdate", game.get_lobby_state())      # notify all clients of empty lobby
 
     except (WebSocketDisconnect, Exception):
-        if player:                              # check if disconnected client was a player
+        if player and game.ws_to_player.get(ws) == player:
+            # verify ownership before clearing: if the client refreshed rapidly, the new connection
+            # may have already taken this player slot — in that case ws_to_player[ws] no longer points
+            # to this player, so we skip the cleanup to avoid overwriting the new session's state
             player.connected = False            # free up the slot
             player.current_direction = None     # stop any ongoing movement
+            player.name = "Anonymous"           # clear display name
+            player.token = None                 # clear JWT
+            player.user_id = None               # clear UUID so the slot is available for reconnection
+            player.votedToAbandon = False        # clear abandon vote
+            if game.status == "playing":
+                game.status = "paused"                      # pause the game so remaining players can wait for reconnection
+                game.last_activity_time = time.time()       # start inactivity timer from this moment
+                await game.emit_event("playerDisconnected", {  # notify remaining clients that a player left
+                    "playerId": player.id,
+                    "name": player.name
+                })
         game.ws_to_player.pop(ws, None)                # remove ws -> player mapping, pop with None avoids KeyError
-        if ws in game.spectator_connections:                            # check if disconnected client was a spectator
-            del game.spectator_connections[ws]                          # remove key from spectator dict
-            game.spectators = [                                         # rebuild serializable list iterating on values
+        if ws in game.spectator_connections:            # check if disconnected client was a spectator
+            del game.spectator_connections[ws]          # remove key from spectator dict
+            game.spectators = [                         # rebuild serializable list iterating on values
                 {"name": n} for n in game.spectator_connections.values()
             ]
-        game.connections.discard(ws)            # discard (unlike remove, doesn't raise error if not present): first discard
+        game.connections.discard(ws)                    # discard (unlike remove, doesn't raise error if not present)
         game.lobby_queue = [e for e in game.lobby_queue if e["ws"] != ws]  # remove disconnected client from queue
-        await game.promote_from_queue()                # promote first in queue if slot is free
-        await broadcast("lobbyUpdate", game.get_lobby_state()) # then broadcast remaining clients that a player left
+        if game.status not in ["playing", "paused"]:
+            await game.promote_from_queue()             # promote first in queue if slot is free — skipped during active game
+        await broadcast("lobbyUpdate", game.get_lobby_state())  # notify remaining clients that a player left
