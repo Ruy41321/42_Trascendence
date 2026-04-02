@@ -43,13 +43,13 @@
 		<h4>👥 Players</h4>
 		<div class="players-list">
 		  <div 
-			v-for="player in gameState.players" 
+			v-for="player in activePlayers" 
 			:key="player.id"
 			:class="['player-item', { 'me': player.id === myPlayer?.id }]"
 		  >
 			<span 
 			  class="player-indicator" 
-			  :style="{ background: PADDLE_COLORS[player.side] || '#fff' }"
+			  :style="{ background: PADDLE_COLORS?.[player.side] || '#fff' }"
 			></span>
 			
 			<span class="player-name">
@@ -67,11 +67,12 @@
   </template>
   
   <script setup>
+  import { computed } from 'vue';
   import BaseCard from './BaseCard.vue';
   import { PADDLE_COLORS } from '../config/gameConfig.js'; // Adjust path if needed
   
   // We receive these two objects from the parent game view
-  defineProps({
+  const props = defineProps({
 	myPlayer: {
 	  type: Object,
 	  default: null
@@ -80,6 +81,11 @@
 	  type: Object,
 	  default: null
 	}
+  });
+
+  const activePlayers = computed(() => {
+    if (!props.gameState?.players) return [];
+    return props.gameState.players.filter(p => p.name !== 'Anonymous');
   });
   </script>
   

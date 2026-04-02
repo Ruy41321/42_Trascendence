@@ -125,7 +125,7 @@ const emit = defineEmits(['join-lobby', 'spectate', 'start-game', 'start-vs-ai',
 const playerName = ref('');
 const MAX_PLAYERS = 4;
 const isLobbyFull = computed(() => props.lobbyState.players.length >= MAX_PLAYERS);
-const canJoinGame = computed(() => !isLobbyFull.value && (props.gameStatus === 'lobby' || props.gameStatus === 'waiting'));
+const canJoinGame = computed(() => !isLobbyFull.value && (props.gameStatus === 'lobby' || props.gameStatus === 'waiting' || props.gameStatus === 'paused'));
 const joinDisabled = computed(() => {
   if (!canJoinGame.value) return true;
 
