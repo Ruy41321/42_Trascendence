@@ -20,8 +20,6 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: transcendence-postgres
-    env_file:
-      - ../.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -44,9 +42,9 @@ services:
     build:
       context: ../backend/auth-service
       dockerfile: ../../docker/prod/auth.Dockerfile
+      args:
+        - PORT=${AUTH_SERVICE_INTERNAL_PORT:-8000}
     container_name: transcendence-auth
-    env_file:
-      - ../.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -60,8 +58,11 @@ services:
       PROJECT_NAME: ${PROJECT_NAME}
       VERSION: ${VERSION}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+      PORT: ${AUTH_SERVICE_INTERNAL_PORT:-8000}
     ports:
-      - "${AUTH_SERVICE_PORT:-8001}:8000"
+      - "${AUTH_SERVICE_PORT:-8001}:${AUTH_SERVICE_INTERNAL_PORT:-8000}"
+    volumes:
+      - ./certs:/app/certs:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,7 +102,6 @@ services:
         - VITE_PORT=${GAME_SERVICE_PORT:-3000}
     container_name: pong-frontend
     ports:
-      - "${FRONTEND_PROD_HTTP_PORT:-80}:80"
       - "${FRONTEND_PROD_HTTPS_PORT:-443}:443"
     environment:
       - GAME_SERVICE_HOST=game-service
@@ -119,18 +119,18 @@ services:
     networks:
       - app-network
 
-  # ── ADMINER (DB viewer) ──────────────────────────
-  adminer:
-    image: adminer:latest
-    container_name: transcendence-adminer
-    ports:
-      - "${ADMINER_PORT:-8080}:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - db-network
+  # # ── ADMINER (DB viewer) ──────────────────────────
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: transcendence-adminer
+  #   ports:
+  #     - "${ADMINER_PORT:-8080}:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - db-network
 
 volumes:
   postgres_data:

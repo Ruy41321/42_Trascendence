@@ -1,8 +1,8 @@
 # How It Works - Auth Service API
 
-**Base URL:** `http://localhost:8001/api/v1`
+**Base URL:** `https://localhost:8001/api/v1`
 
-**Swagger docs:** `http://localhost:8001/api/v1/docs`
+**Swagger docs:** `https://localhost:8001/api/v1/docs`
 
 ---
 
@@ -261,7 +261,7 @@ Authorization: Bearer <access_token>
 
 ### GET `/health` (no /api/v1 prefix)
 
-**URL:** `http://localhost:8001/health`
+**URL:** `https://localhost:8001/health`
 
 **Response:**
 ```json
@@ -277,7 +277,7 @@ Authorization: Bearer <access_token>
 ## Frontend Usage Example (fetch)
 
 ```javascript
-const API = "http://localhost:8001/api/v1";
+const API = "https://localhost:8001/api/v1";
 
 // 1. Register
 const register = await fetch(`${API}/auth/register`, {

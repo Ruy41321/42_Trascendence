@@ -3,3 +3,5 @@
 __pycache__/
 *:Zone.Identifier
 *.Identifier
+docker/certs/server.crt
+docker/certs/server.key

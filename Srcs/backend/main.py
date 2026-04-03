@@ -369,7 +369,7 @@ class PongGameState:
                     ],
                 })
                 try:
-                    async with httpx.AsyncClient() as client: # sends a POST request to the auth service for the match logging
+                    async with httpx.AsyncClient(verify=False) as client: # sends a POST request to the auth service for the match logging
                         connected_players = [pl for pl in self.players if pl.connected]
                         body = {    # in case of 2 players
                             "player1_id": connected_players[0].user_id,

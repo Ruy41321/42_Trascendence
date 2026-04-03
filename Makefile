@@ -112,7 +112,7 @@ prod: check-certs
 	@echo "✅ Production servers running:"
 	@echo "   Frontend:     https://localhost (Nginx + SSL)"
 	@echo "   Game Service: wss://localhost:3000 (WebSocket Secure)"
-	@echo "   Auth Service: http://localhost:8001 (REST API)"
+	@echo "   Auth Service: https://localhost:8001 (REST API)"
 	@echo "   PostgreSQL:   localhost:5433"
 	@echo ""
 

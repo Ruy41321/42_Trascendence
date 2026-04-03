@@ -29,7 +29,7 @@ make clean         # Remove containers/images/volumes
 
 - Frontend: `https://localhost`
 - WebSocket endpoint (from frontend): `wss://localhost/ws`
-- Auth API (host exposed): `http://localhost:8001`
+- Auth API (host exposed): `https://localhost:8001`
 
 ## Structure
 

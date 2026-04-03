@@ -33,8 +33,8 @@ COPY config/nginx.conf /etc/nginx/templates/default.conf.template
 # Create directory for SSL certificates (mounted at runtime)
 RUN mkdir -p /etc/nginx/ssl
 
-# Expose HTTP and HTTPS ports
-EXPOSE 80 443
+# Expose HTTPS ports
+EXPOSE ${FRONTEND_PROD_HTTPS_PORT:-443}
 
 # Substitute only our custom vars at startup, then launch nginx.
 # The quoted variable list prevents envsubst from touching nginx's own $variables.
