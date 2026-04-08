@@ -82,8 +82,9 @@ class Ball:
         """
         self.x = 0.5        # back to center x
         self.y = 0.5        # back to center y
-        self.vx *= -1       # reverse horizontal direction
-        self.vy *= -1       # reverse vertical direction
+        self.vx = 0.008 if self.vx < 0 else -0.008   # reverse horizontal direction
+        self.vy = 0.004 if self.vy < 0 else -0.004   # reverse vertical direction
+
 
     def serialize(self) -> dict:
         """
