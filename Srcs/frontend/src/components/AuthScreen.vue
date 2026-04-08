@@ -225,7 +225,7 @@ function handleSubmit() {
   align-items: center;
   min-height: 460px;
   width: 100%;
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .auth-title {
@@ -236,7 +236,7 @@ function handleSubmit() {
 
 .auth-subtitle {
   opacity: 0.8;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .mode-switch {
@@ -259,10 +259,10 @@ function handleSubmit() {
   margin-top: 8px;
   border: none;
   background: transparent;
-  color: #00d4ff;
+  color: var(--outline-canvas);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .footer-toggle.back {

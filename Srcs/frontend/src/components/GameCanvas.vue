@@ -36,10 +36,10 @@
     
 	<!--REFACTORING: USING THE COMPONENTS -->
 	<div v-if="overlayText" class="overlay">
-      <LoadingSpinner v-if="['lobby', 'waiting'].includes(gameState?.status) || !gameState"  size="lg" style="margin-bottom: 20px;" />
+      <LoadingSpinner v-if="['lobby', 'waiting'].includes(gameState?.status) || !gameState"  size="lg" style="margin-bottom: var(--spacing-lg);" />
       <h2>{{ overlayText }}</h2>
       <div v-if="showCountdown" class="countdown">{{ countdown }}</div>
-      <GameBadge v-if="isSpectator" variant="warning" style="margin-top: 20px;"> You are spectating</GameBadge>
+      <GameBadge v-if="isSpectator" variant="warning" style="margin-top: var(--spacing-lg);"> You are spectating</GameBadge>
     </div>
   </div>
 
@@ -250,7 +250,7 @@ function render() {
  * Draw field lines (center + dividers)
  */
 function drawFieldLines() {
-  ctx.value.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.value.strokeStyle = 'var(--bg-dark-elem)';
   ctx.value.lineWidth = 2;
   ctx.value.setLineDash([10, 10]);
   
@@ -567,8 +567,8 @@ watch(() => props.gameState?.status, (newStatus, oldStatus) => {
 }
 
 canvas {
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px var(--shadow-dark, var(--shadow-dark, rgba(0, 0, 0, 0.5)));
 }
 
 .overlay {
@@ -582,20 +582,20 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   pointer-events: none;
 }
 
 .overlay h2 {
   font-size: 36px;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
   text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
 }
 
 .countdown {
   font-size: 72px;
-  font-weight: bold;
-  color: #00d4ff;
+  font-weight: var(--font-weight-bold);
+  color: var(--outline-canvas);
   text-shadow: 0 0 40px rgba(0, 212, 255, 1);
   animation: pulse 1s infinite;
 }

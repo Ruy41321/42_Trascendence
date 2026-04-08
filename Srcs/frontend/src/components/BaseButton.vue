@@ -34,9 +34,9 @@ defineEmits(['click']);
 .base-button
 {
   padding: 13px 26px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 8px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
@@ -47,27 +47,27 @@ defineEmits(['click']);
 /* Primary Variant TODO:check colors */
 .base-button.primary
 {
-  background:  purple;
-  color: pink;
-  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+  background: var(--color-primary);
+  color: var(--color-primary-light);
+  box-shadow: 0 4px 15px var(--color-primary-shadow);
 }
 .base-button.primary:hover:not(:disabled)
 {
   transform: translateY(-4px);
-  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
+  box-shadow: 0 6px 20px var(--color-primary-hover-shadow);
 }
 
 /* Secondary Variant TODO:check colors */
 .base-button.secondary
 {
-  background: rgb(163, 43, 43);
-  color: white;
-  border: 5px solid rgba(255, 255, 255, 0.3);
+  background: var(--color-secondary);
+  color: var(--text-main);
+  border: 5px solid var(--bg-dark-elem-active, rgba(255, 255, 255, 0.3));
 }
 .base-button.secondary:hover:not(:disabled)
 {
-  background: rgba(130, 40, 40, 0.386);
-  border-color: #8a1616;
+  background: var(--color-secondary-hover);
+  border-color: var(--color-secondary-border);
 }
 
 /* Disabled State */

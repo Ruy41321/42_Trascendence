@@ -25,9 +25,9 @@
   -webkit-backdrop-filter: blur(16px); /* Safari support */
   
   /* Borders & Shadows */
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--bg-dark-elem);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px var(--shadow-md, var(--shadow-md, rgba(0, 0, 0, 0.3)));
   
   /* Layout */
   width: 100%;
@@ -40,8 +40,8 @@
 
 /* Header Section */
 .card-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-lg) 24px;
+  border-bottom: 1px solid var(--bg-dark-elem);
   background: rgba(0, 0, 0, 0.2); /* Slightly darker to stand out */
   text-align: center;
 }
@@ -51,15 +51,15 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Adds space between inputs automatically */
+  gap: var(--spacing-md); /* Adds space between inputs automatically */
 }
 
 /* Footer Section */
 .card-footer {
-  padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-md) 24px;
+  border-top: 1px solid var(--bg-dark-elem);
   background: rgba(0, 0, 0, 0.2);
   text-align: center;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
  </style>

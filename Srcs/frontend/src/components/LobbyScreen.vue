@@ -186,7 +186,7 @@ function handleStartVsAI() {
   justify-content: center;
   align-items: center;
   min-height: 400px;
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .join-section {
@@ -218,16 +218,16 @@ function handleStartVsAI() {
 .player-slot {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: rgba(black);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--bg-dark-elem);
 }
 
 .player-slot.is-me {
   background: rgba(0, 212, 255, 0.1);
-  border-color: #00d4ff;
+  border-color: var(--outline-canvas);
 }
 
 .player-slot.empty {
@@ -235,17 +235,17 @@ function handleStartVsAI() {
 }
 
 .player-number {
-  font-weight: bold;
-  color: #00d4ff;
+  font-weight: var(--font-weight-bold);
+  color: var(--outline-canvas);
 }
 
 .player-name {
   flex: 1;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .you-badge {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: #00ff88;
 }
 
@@ -256,8 +256,8 @@ function handleStartVsAI() {
 
 .spectator-tag {
   padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: var(--radius-lg, 12px);
+  font-size: var(--text-xs);
   background: rgba(255, 190, 11, 0.2);
   color: #ffbe0b;
 }
@@ -268,7 +268,7 @@ function handleStartVsAI() {
 
 .hint {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.5);
 }
 
@@ -282,7 +282,7 @@ function handleStartVsAI() {
   padding: 12px;
   text-align: center;
   background: rgba(255, 0, 110, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: rgba(255, 255, 255, 0.8);
 }
 
@@ -299,12 +299,12 @@ function handleStartVsAI() {
   }
 
   .lobby-card {
-    padding: 20px; /* Reduce internal padding (was 32px) */
+    padding: var(--spacing-lg); /* Reduce internal padding (was 32px) */
   }
 
   .lobby-card h2 {
-    font-size: 24px; /* Slightly smaller title */
-    margin-bottom: 16px;
+    font-size: var(--text-2xl); /* Slightly smaller title */
+    margin-bottom: var(--spacing-md);
   }
 
   /* .btn {
@@ -315,8 +315,8 @@ function handleStartVsAI() {
   /* Stack the player slots vertically if the screen is VERY small */
   /* OR keep them 2-column but with smaller text. Let's try 2-column first. */
   .player-slot {
-    padding: 8px;
-    font-size: 14px;
+    padding: var(--spacing-sm);
+    font-size: var(--text-sm);
   }
 
   /* Stack the join buttons if needed (optional) */

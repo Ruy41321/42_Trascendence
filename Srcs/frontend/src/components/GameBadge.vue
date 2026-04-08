@@ -16,9 +16,9 @@
   <style scoped>
   .game-badge {
 	display: inline-block;
-	padding: 8px 16px;
+	padding: var(--spacing-sm) 16px;
 	border-radius: 20px;
-	font-size: 14px;
+	font-size: var(--text-sm);
 	text-align: center;
   }
   
@@ -39,7 +39,7 @@
   /* Info Variant (Blue - default) */
   .game-badge.info {
 	background: rgba(0, 212, 255, 0.2);
-	color: #00d4ff;
-	border: 1px solid #00d4ff;
+	color: var(--outline-canvas);
+	border: 1px solid var(--outline-canvas);
   }
   </style>

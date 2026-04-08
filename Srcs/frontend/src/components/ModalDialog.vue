@@ -43,12 +43,12 @@ defineEmits(['close', 'confirm']);
   
   .modal-box {
 	background: rgba(20, 20, 30, 0.95);
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid var(--bg-dark-elem);
 	border-radius: 16px;
 	padding: 24px;
 	width: 90%;
 	max-width: 400px;
-	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+	box-shadow: 0 10px 40px var(--shadow-dark, var(--shadow-dark, rgba(0, 0, 0, 0.5)));
 	text-align: center;
   }
   
@@ -70,19 +70,19 @@ defineEmits(['close', 'confirm']);
   
   .btn-cancel, .btn-confirm {
 	padding: 10px 20px;
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	border: none;
-	font-weight: bold;
+	font-weight: var(--font-weight-bold);
 	cursor: pointer;
   }
   
   .btn-cancel {
-	background: rgba(255, 255, 255, 0.1);
-	color: white;
+	background: var(--bg-dark-elem);
+	color: var(--text-main);
   }
   
   .btn-confirm {
 	background: #ff006e;
-	color: white;
+	color: var(--text-main);
   }
   </style>

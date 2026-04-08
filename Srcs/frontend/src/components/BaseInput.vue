@@ -46,15 +46,15 @@ defineEmits(['update:modelValue']);
 {
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
   width: 100%;
 }
 
 .input-label
 {
   margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -64,11 +64,11 @@ defineEmits(['update:modelValue']);
 {
   width: 100%;
   padding: 12px 16px;
-  font-size: 16px;
-  color: white;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  font-size: var(--text-md);
+  color: var(--text-main);
+  background: var(--shadow-md, var(--shadow-md, rgba(0, 0, 0, 0.3)));
+  border: 2px solid var(--bg-dark-elem-hover, var(--bg-dark-elem-hover, rgba(255, 255, 255, 0.2)));
+  border-radius: var(--radius-md);
   transition: all 0.3s ease;
   outline: none;
 }
@@ -81,9 +81,9 @@ defineEmits(['update:modelValue']);
 /* Focus State (Neon Blue Glow) */
 .base-input:focus
 {
-  border-color: #00d4ff;
+  border-color: var(--outline-canvas);
   box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--shadow-dark, var(--shadow-dark, rgba(0, 0, 0, 0.5)));
 }
 
 /* Error State (Neon Red Glow) */
@@ -96,8 +96,8 @@ defineEmits(['update:modelValue']);
 .error-message
 {
   color: #ff006e;
-  font-size: 12px;
+  font-size: var(--text-xs);
   margin-top: 6px;
-  font-weight: bold;
+  font-weight: var(--font-weight-bold);
 }
  </style>

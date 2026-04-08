@@ -333,7 +333,7 @@ const modalContent = {
 	min-height: 100vh;
 	align-items: center;
 	gap: 20px;
-	padding: 20px;
+	padding: var(--spacing-lg);
   }
   .game-area
   {
@@ -358,7 +358,7 @@ const modalContent = {
 }
 
 .auth-user {
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -369,14 +369,14 @@ const modalContent = {
 .logout-button {
   border: 1px solid rgba(255, 255, 255, 0.4);
   background: rgba(0, 0, 0, 0.25);
-  color: #fff;
+  color: var(--text-main);
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 .logout-button:hover {
-  border-color: #00d4ff;
+  border-color: var(--outline-canvas);
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
 }
   .game-header, .game-footer
@@ -400,7 +400,7 @@ const modalContent = {
   }
   
   .game-header h1 {
-    font-size: 24px;
+    font-size: var(--text-2xl);
   }
   
   .subtitle {
@@ -432,7 +432,7 @@ const modalContent = {
   margin-top: auto; /* Pushes footer to bottom */
   padding: 30px 20px;
   width: 100%;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--bg-dark-elem);
 }
 
 .footer-content {
@@ -452,7 +452,7 @@ const modalContent = {
 .link-btn {
   background: none;
   border: none;
-  color: #00d4ff;
+  color: var(--outline-canvas);
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
@@ -461,11 +461,11 @@ const modalContent = {
 }
 
 .link-btn:hover {
-  color: #fff;
+  color: var(--text-main);
 }
 
 .separator {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--bg-dark-elem-active, rgba(255, 255, 255, 0.3));
 }
 
 /* Legal text styling inside the modal */
@@ -491,7 +491,7 @@ const modalContent = {
 @media (max-width: 768px) {
   .footer-links {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
   .separator {
     display: none;

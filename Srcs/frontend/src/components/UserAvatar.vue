@@ -34,15 +34,15 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 50%;
+	border-radius: var(--radius-full);
 	background:  #0099cc;
-	color: white;
-	font-weight: bold;
+	color: var(--text-main);
+	font-weight: var(--font-weight-bold);
 	box-shadow: 0 4px 10px rgba(0, 212, 255, 0.3);
-	border: 2px solid rgba(255, 255, 255, 0.2);
+	border: 2px solid var(--bg-dark-elem-hover, var(--bg-dark-elem-hover, rgba(255, 255, 255, 0.2)));
   }
   
-  .user-avatar.sm { width: 32px; height: 32px; font-size: 12px; }
-  .user-avatar.md { width: 48px; height: 48px; font-size: 18px; }
-  .user-avatar.lg { width: 64px; height: 64px; font-size: 24px; }
+  .user-avatar.sm { width: 32px; height: 32px; font-size: var(--text-xs); }
+  .user-avatar.md { width: 48px; height: 48px; font-size: var(--text-lg); }
+  .user-avatar.lg { width: 64px; height: 64px; font-size: var(--text-2xl); }
   </style>

@@ -191,12 +191,12 @@ function getKeyLabel(direction) {
 
 <style scoped>
 .game-stats {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-dark-elem);
   backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--spacing-lg);
   min-width: 300px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px var(--shadow-md, var(--shadow-md, rgba(0, 0, 0, 0.3)));
 }
 
 .stat-item {
@@ -204,8 +204,8 @@ function getKeyLabel(direction) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--bg-dark-elem);
 }
 
 .stat-item:last-child {
@@ -214,18 +214,18 @@ function getKeyLabel(direction) {
 }
 
 .label {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .value {
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-md);
 }
 
 .player-info {
-  color: #00d4ff;
+  color: var(--outline-canvas);
   text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
 
@@ -240,7 +240,7 @@ function getKeyLabel(direction) {
 
 .keys {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: center;
   margin-top: 8px;
 }
@@ -250,40 +250,40 @@ kbd {
   padding: 6px 12px;
   border-radius: 6px;
   font-family: monospace;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 4px 10px var(--shadow-md, var(--shadow-md, rgba(0, 0, 0, 0.3)));
+  font-size: var(--text-sm);
   min-width: 40px;
   text-align: center;
 }
 
 .separator {
   color: rgba(255, 255, 255, 0.5);
-  font-weight: bold;
+  font-weight: var(--font-weight-bold);
 }
 
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
   margin-top: 16px;
 }
 
 
 
 .voted-badge {
-  padding: 8px;
+  padding: var(--spacing-sm);
   text-align: center;
   color: #ff006e;
-  font-size: 14px;
-  border-radius: 8px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
   background: rgba(255, 0, 110, 0.1);
 }
 
 .abandon-votes {
   background: rgba(255, 0, 110, 0.1);
-  border-radius: 8px;
-  padding: 8px 12px !important;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) 12px !important;
 }
 
 .status.playing {
@@ -299,7 +299,7 @@ kbd {
 }
 
 .status.countdown {
-  color: #00d4ff;
+  color: var(--outline-canvas);
   animation: pulse 1s infinite;
 }
 
@@ -316,9 +316,9 @@ kbd {
     /* Reset the card style to be a slim bar */
     min-width: 0;
     width: 100%;
-    padding: 8px 12px;
+    padding: var(--spacing-sm) 12px;
     margin-bottom: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(0, 0, 0, 0.4); /* Darker background for contrast */
 
     /* Layout: Horizontal Row */
@@ -341,7 +341,7 @@ kbd {
     border-bottom: none;
     margin-bottom: 0;
     padding: 0;
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
 
   /* 3. Compact the "You are" text */
@@ -350,7 +350,7 @@ kbd {
   }
 
   .value {
-    font-size: 14px;
+    font-size: var(--text-sm);
   }
 
   /* 4. Fix the Buttons (Make them small and inline) */
@@ -363,7 +363,7 @@ kbd {
   .btn {
     width: auto; /* Let button shrink to text size */
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
 
   /* Special fix for the Abandon button to not be huge */
@@ -373,10 +373,10 @@ kbd {
 
   /* 5. Highlight "Status" specifically */
   .status {
-    font-size: 12px;
+    font-size: var(--text-xs);
     padding: 2px 8px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    background: var(--bg-dark-elem);
   }
 }
 </style>

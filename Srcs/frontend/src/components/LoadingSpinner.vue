@@ -21,9 +21,9 @@
   }
   
   .spinner {
-	border: 4px solid rgba(255, 255, 255, 0.1);
-	border-left-color: #00d4ff; /* Neon blue */
-	border-radius: 50%;
+	border: 4px solid var(--bg-dark-elem);
+	border-left-color: var(--outline-canvas); /* Neon blue */
+	border-radius: var(--radius-full);
 	animation: spin 1s linear infinite;
   }
   

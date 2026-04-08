@@ -33,12 +33,12 @@
   .base-list-section.is-boxed {
 	padding: 12px;
 	background: rgba(0, 0, 0, 0.2);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
   }
   
   .list-title {
 	margin-bottom: 12px;
-	font-size: 16px;
+	font-size: var(--text-md);
 	color: rgba(255, 255, 255, 0.8);
   }
   
@@ -46,13 +46,13 @@
   .list-container.flex {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--spacing-sm);
   }
   
   /* Grid Layout - iPhone 5S Responsive Magic! */
   .list-container.grid {
 	display: grid;
-	gap: 8px;
+	gap: var(--spacing-sm);
 	/* DEFAULT: 1 Column for tiny screens (iPhone 5S, SE) */
 	grid-template-columns: 1fr; 
   }

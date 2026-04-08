@@ -92,20 +92,20 @@
   <style scoped>
   .panel-title {
 	margin: 0;
-	color: #00d4ff;
-	font-size: 20px;
+	color: var(--outline-canvas);
+	font-size: var(--text-xl);
   }
   
   .info-section {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--spacing-sm);
   }
   
   .info-section h4 {
 	margin: 0 0 8px 0;
 	color: rgba(255, 255, 255, 0.9);
-	font-size: 16px;
+	font-size: var(--text-md);
 	text-transform: uppercase;
 	letter-spacing: 1px;
   }
@@ -114,7 +114,7 @@
 	margin: 0;
 	padding-left: 20px;
 	color: rgba(255, 255, 255, 0.7);
-	font-size: 14px;
+	font-size: var(--text-sm);
   }
   
   li { margin-bottom: 4px; }
@@ -122,13 +122,13 @@
   .divider {
 	border: 0;
 	height: 1px;
-	background: rgba(255, 255, 255, 0.1);
+	background: var(--bg-dark-elem);
 	margin: 16px 0;
   }
   
   .controls-info p {
 	margin: 0 0 8px 0;
-	font-size: 14px;
+	font-size: var(--text-sm);
 	color: rgba(255, 255, 255, 0.8);
   }
   
@@ -140,15 +140,15 @@
   .players-list {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--spacing-sm);
   }
   
   .player-item {
 	display: flex;
 	align-items: center;
-	padding: 8px 12px;
-	background: rgba(0, 0, 0, 0.3);
-	border-radius: 8px;
+	padding: var(--spacing-sm) 12px;
+	background: var(--shadow-md, var(--shadow-md, rgba(0, 0, 0, 0.3)));
+	border-radius: var(--radius-md);
 	border: 1px solid rgba(255, 255, 255, 0.05);
   }
   
@@ -160,24 +160,24 @@
   .player-indicator {
 	width: 12px;
 	height: 12px;
-	border-radius: 50%;
+	border-radius: var(--radius-full);
 	margin-right: 12px;
 	box-shadow: 0 0 8px currentColor;
   }
   
   .player-name {
 	flex-grow: 1;
-	font-size: 14px;
-	font-weight: bold;
+	font-size: var(--text-sm);
+	font-weight: var(--font-weight-bold);
   }
   
   .you-tag {
 	color: #00ff88;
-	font-size: 12px;
+	font-size: var(--text-xs);
 	margin-left: 4px;
   }
   
-  .player-status { font-weight: bold; }
+  .player-status { font-weight: var(--font-weight-bold); }
   .player-status.online { color: #00ff88; }
   .player-status.offline { color: #ff006e; }
   </style>
