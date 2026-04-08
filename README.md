@@ -54,7 +54,13 @@ Follow these steps to set up the project locally:
 
 ## Resources
 
-#todo
+* **Subject PDF** - [42 Subject PDF](Doc/en.subject.pdf)
+* **Database Schema** - [DB_SCHEMA](Doc/database_schema.html) #todo (abdallah fix here)
+* **AUTH API Documentation** - [API_GUIDE.md](Doc/API_GUIDE.md)
+* **Game Frontend - Backend WebSocket Protocol** - [WEBSOCKET_PROTOCOL.md](Doc/WEBSOCKET_PROTOCOL.md)
+* **Docker Infrastructure** - [Docker README](docker/README.md)
+* **SSL Certificates** - [Certs README](docker/certs/README.md)
+* **AI Usage** - [AI Usage](#ai-usage)
 
 ---
 
@@ -138,6 +144,9 @@ Below is the information regarding the team members and their specific roles:
 | **Implement real-time features using WebSockets or similar technology** | Major (2) | Tcaccava | To learn how to implement real-time features | Implemented native WebSocket communication for game state broadcasting. |
 | **A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints** | Major (2) | Abkhefif | #todo | #todo |
 |**Use an ORM for the database.** | Minor (1) | Abkhefif | #todo | #todo |
+|**Use a frontend framework (React, Vue, Angular, Svelte, etc.)**| Minor (1) | Lpennisi & Atucci | To learn how to use a frontend framework | Implemented Vue.js as frontend framework. |
+| **Custom-made design system with reusable components, including a proper color palette, typography, and icons (minimum: 10 reusable components).** | Minor (1) | Lpennisi & Atucci | To learn how to create a design system and reusable components | Implemented a custom design system with reusable Vue components. |
+| **Support for additional browsers.** | Minor (1) | Lpennisi & Atucci | To ensure accessibility across different platforms | Implemented cross-browser compatibility for Chrome, Firefox. |
 
 ---
 
@@ -173,5 +182,9 @@ Below is the information regarding the team members and their specific roles:
 AI tools were used during the project for the following tasks:
 
 * **ChatGPT chatbot** has been used to learn the FastAPI theory.
-* **Gemini chatbot** has been used to learn python basics and Typing/Pydantic Library.
+* **Gemini chatbot** has been used to learn python basics and Typing/Pydantic Library as well as specific vueJS concepts.
+This AI has also been used to discuss on ideas of implementation to find lacks and gather suggestions on how to set a correct architecture for the project.
+* **Github Copilot** has been used to speed up the development process by providing code suggestions, autocompletions and understand the reason behind some tedious bugs.
+* **Github Copilot Agent** has been used to complete repetitive coding tasks, such as replace css styles with new ones after a design change, and to generate documentation to interface the frontend with the backend.
 
+#todo (Abdllah and alessio add your AI usage here)
