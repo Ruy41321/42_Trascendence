@@ -71,7 +71,7 @@ Below is the information regarding the team members and their specific roles:
 | Member       | Assigned Role(s)    | Responsibilities                                                                        |
 |:------------ |:------------------- |:--------------------------------------------------------------------------------------- |
 | **Lpennisi**    | PO, PM, Game Fronted Dev | Ensure the final product meets the project requirements. Develop the frontend rendering of the game. |
-| **Atucci**  | Frontend Dev  | #todo |
+| **Atucci**  | Frontend Dev  | Develop the frontend interface in a scalable and component-based manner. |
 | **Tcaccava** | Game Logic & Web Socket Backend Dev   | Develop the game logic and Real-time socketing. |
 | **Abkhefif**    | REST Backend Dev   | Develop the REST API and database integration. |
 
@@ -154,15 +154,16 @@ Below is the information regarding the team members and their specific roles:
 
 ### Lpennisi
 
-* **Contributions:** Managed the github repository and Implemented the core game physics and WebSocket synchronization logic.
+* **Contributions:** Managed the github repository and Implemented the frontend game view.
 * **Challenges:** 
 1. Synchronizing game state between client and server has been the major challenge, it has been overcome by implementing a robust event-driven architecture with a rigorous protocol for state updates.
 2. Maintaining a clean and working repository has been a challenge when multiple branches and features were being developed simultaneously, it has been overcome by enforcing the use of Github Issues.
 
 ### Atucci
 
-* **Contributions:** #todo
-* **Challenges:** #todo
+* **Contributions:** Designed and implemented the frontend interface of the Web-app.
+* **Challenges:** 
+1. To learn a new frontend framework (Vue.js) and to implement a complex UI with reusable components was the major challenge. It has been overcome by following Vue.js documentation and best practices, and by creating a design system to ensure consistency across the application.
 
 ### Abkhefif
 
@@ -194,4 +195,4 @@ This AI has also been used to discuss on ideas of implementation to find lacks a
 * **Github Copilot** has been used to speed up the development process by providing code suggestions, autocompletions and understand the reason behind some tedious bugs.
 * **Github Copilot Agent** has been used to complete repetitive coding tasks, such as replace css styles with new ones after a design change, and to generate documentation to interface the frontend with the backend.
 
-#todo (Abdllah and alessio add your AI usage here)
+#todo (Abdllah add your AI usage here)
