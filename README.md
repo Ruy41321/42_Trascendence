@@ -171,8 +171,15 @@ Below is the information regarding the team members and their specific roles:
 
 ### Tcaccava
 
-* **Contributions:** #todo
-* **Challenges:** #todo
+* **Contributions:** 
+
+Designed the full game backend — including physics engine, real-time WebSocket server, lobby system, and Docker containerization. Developed a normalized coordinate system for multi-player Pong supporting 2 to 4 simultaneous players with dynamic wall bounce when sides are unoccupied. Implemented a 60fps server-side game loop with asyncio, AABB collision detection with angular bounce, client-side prediction support via input reconciliation, and a lobby queue with automatic slot promotion on disconnect. 
+
+* **Challenges:**
+ 
+1. Managing concurrent WebSocket coroutines,one for each connected player + the world loop one, safely in a single-threaded asyncio environment was the primary challenge. Race conditions on rapid reconnection (page refresh during a match) caused cascading disconnections across all connected clients. Identifying the root cause was extremely difficult and took days of hard work: the root cause was asyncio.gather propagating exceptions from dead WebSockets into active player coroutines. Solved by adding return_exceptions=True to all gather calls and introducing WebSocket ownership verification before clearing player slots in the disconnect handler.
+2. Designing a game state architecture that supports variable player counts (2 to 4) without breaking the physics, scoring, or lobby logic required careful separation between slot state and connection state — a distinction that also proved critical for handling disconnections and reconnections gracefully during an active match.
+
 
 ---
 
