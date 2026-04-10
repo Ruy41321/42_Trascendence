@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.api.v1.endpoints import auth, achievements, matches, users, stats
+from app.api.deps import verify_api_key
 
-api_router = APIRouter()
+api_router = APIRouter(dependencies=[Depends(verify_api_key)])
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(achievements.router, prefix="/achievements", tags=["Achievements"])
