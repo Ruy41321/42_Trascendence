@@ -1,10 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.v1 import api_router
 
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
 app = FastAPI(title = settings.PROJECT_NAME, version =settings.VERSION, openapi_url = f"{settings.API_V1_STR}/openapi.json")
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
         CORSMiddleware,

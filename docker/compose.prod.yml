@@ -59,6 +59,7 @@ services:
       VERSION: ${VERSION}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
       PORT: ${AUTH_SERVICE_INTERNAL_PORT:-8000}
+      API_KEY: ${API_KEY}
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:${AUTH_SERVICE_INTERNAL_PORT:-8000}"
     volumes:
@@ -85,6 +86,7 @@ services:
       - PORT=${GAME_SERVICE_PORT:-3000}
       - AUTH_SERVICE_HOST=auth-service
       - AUTH_SERVICE_INTERNAL_PORT=${AUTH_SERVICE_INTERNAL_PORT:-8000}
+      - API_KEY=${API_KEY}
     volumes:
       - ./certs:/app/certs:ro
     depends_on:

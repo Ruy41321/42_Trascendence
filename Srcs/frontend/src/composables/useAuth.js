@@ -69,7 +69,7 @@ function useAuth() {
     try {
       const response = await fetch(`${API_CONFIG.BASE_PATH}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_CONFIG.API_KEY },
         body: JSON.stringify({
           username: String(username || '').trim(),
           email: normalizeEmail(email),
@@ -93,7 +93,7 @@ function useAuth() {
     try {
       const response = await fetch(`${API_CONFIG.BASE_PATH}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_CONFIG.API_KEY },
         body: JSON.stringify({
           email: normalizeEmail(email),
           password,
@@ -123,6 +123,7 @@ function useAuth() {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token.value}`,
+          'X-API-Key': API_CONFIG.API_KEY,
         },
       });
 

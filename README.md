@@ -55,7 +55,7 @@ Follow these steps to set up the project locally:
 ## Resources
 
 * **Subject PDF** - [42 Subject PDF](Doc/en.subject.pdf)
-* **Database Schema** - [DB_SCHEMA](Doc/database_schema.html) #todo (abdallah fix here)
+* **Database Schema** - [DB_SCHEMA](Doc/database_schema.html)
 * **AUTH API Documentation** - [API_GUIDE.md](Doc/API_GUIDE.md)
 * **Game Frontend - Backend WebSocket Protocol** - [WEBSOCKET_PROTOCOL.md](Doc/WEBSOCKET_PROTOCOL.md)
 * **Docker Infrastructure** - [Docker README](docker/README.md)
@@ -106,15 +106,34 @@ Below is the information regarding the team members and their specific roles:
 
 ### Structure Description
 
-#todo
+![Database Schema](Doc/db_schema.jpeg)
 
 ### Tables and Relationships
 
-#todo
+| Table | Relationships |
+|:------|:-------------|
+| **users** | Referenced by matches (player1-4, winner) and user_achievements (user_id) |
+| **matches** | player1_id, player2_id, player3_id, player4_id, winner_id → users.id |
+| **achievements** | Referenced by user_achievements (achievement_id) |
+| **user_achievements** | user_id → users.id, achievement_id → achievements.id |
 
 ### Key Fields
 
-#todo
+| Table | Field | Type | Constraint |
+|:------|:------|:-----|:-----------|
+| users | id | varchar(36) | PK |
+| users | username | varchar(36) | Unique |
+| users | email | varchar(100) | Unique |
+| users | hashed_password | varchar(255) | |
+| matches | id | varchar(36) | PK |
+| matches | player1_id, player2_id | varchar(36) | FK → users.id |
+| matches | player3_id, player4_id | varchar(36) | FK → users.id, nullable |
+| matches | winner_id | varchar(36) | FK → users.id |
+| achievements | id | varchar(36) | PK |
+| achievements | name | varchar(100) | Unique |
+| user_achievements | id | varchar(36) | PK |
+| user_achievements | user_id | varchar(36) | FK → users.id |
+| user_achievements | achievement_id | varchar(36) | FK → achievements.id |
 
 ---
 
@@ -142,8 +161,8 @@ Below is the information regarding the team members and their specific roles:
 | **Implement spectator mode for games.** | Minor (1) | Tcaccava | To include who joins the lobby after the match starts | Implemented spectator based payload. |
 | **Use a backend framework (Express, Fastify, NestJS, Django, etc.).** | Minor (1) | Abkhefif & Tcaccava | To learn how to use a backend framework & to learn python | Implemented FastAPI as backend framework. |
 | **Implement real-time features using WebSockets or similar technology** | Major (2) | Tcaccava | To learn how to implement real-time features | Implemented native WebSocket communication for game state broadcasting. |
-| **A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints** | Major (2) | Abkhefif | #todo | #todo |
-|**Use an ORM for the database.** | Minor (1) | Abkhefif | #todo | #todo |
+| **A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints** | Major (2) | Abkhefif | To deepen my knowledge and experience with backend development, specifically Python and its FastAPI framework. | Implemented 14 REST API endpoints (auth, users, matches, achievements, stats) with JWT authentication, API key validation, rate limiting, and Swagger/OpenAPI documentation. |
+|**Use an ORM for the database.** | Minor (1) | Abkhefif | To simplify database interactions and maintain clean, maintainable code through object-relational mapping. | Implemented SQLAlchemy 2.0 as ORM with 4 models (users, matches, achievements, user_achievements) and Pydantic schemas for data validation. |
 |**Use a frontend framework (React, Vue, Angular, Svelte, etc.)**| Minor (1) | Lpennisi & Atucci | To learn how to use a frontend framework | Implemented Vue.js as frontend framework. |
 | **Custom-made design system with reusable components, including a proper color palette, typography, and icons (minimum: 10 reusable components).** | Minor (1) | Lpennisi & Atucci | To learn how to create a design system and reusable components | Implemented a custom design system with reusable Vue components. |
 | **Support for additional browsers.** | Minor (1) | Lpennisi & Atucci | To ensure accessibility across different platforms | Implemented cross-browser compatibility for Chrome, Firefox. |
@@ -167,8 +186,9 @@ Below is the information regarding the team members and their specific roles:
 
 ### Abkhefif
 
-* **Contributions:** #todo
-* **Challenges:** #todo
+* **Contributions:** Designed and implemented the REST backend, including JWT authentication, database schema with SQLAlchemy, and API endpoints for user management, matches, achievements, and statistics.
+* **Challenges:** 
+1. Learning REST API architecture and backend development with Python and FastAPI from scratch. Overcome by studying the documentation and iterating on the code structure to achieve a clean separation of concerns.
 
 ### Tcaccava
 
@@ -195,4 +215,4 @@ This AI has also been used to discuss on ideas of implementation to find lacks a
 * **Github Copilot** has been used to speed up the development process by providing code suggestions, autocompletions and understand the reason behind some tedious bugs.
 * **Github Copilot Agent** has been used to complete repetitive coding tasks, such as replace css styles with new ones after a design change, and to generate documentation to interface the frontend with the backend.
 
-#todo (Abdllah add your AI usage here)
+* **Claude chatbot** has been used to learn Python basics and FastAPI framework concepts for backend development.
