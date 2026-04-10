@@ -106,15 +106,34 @@ Below is the information regarding the team members and their specific roles:
 
 ### Structure Description
 
-#todo
+![Database Schema](Doc/db_schema.jpeg)
 
 ### Tables and Relationships
 
-#todo
+| Table | Relationships |
+|:------|:-------------|
+| **users** | Referenced by matches (player1-4, winner) and user_achievements (user_id) |
+| **matches** | player1_id, player2_id, player3_id, player4_id, winner_id → users.id |
+| **achievements** | Referenced by user_achievements (achievement_id) |
+| **user_achievements** | user_id → users.id, achievement_id → achievements.id |
 
 ### Key Fields
 
-#todo
+| Table | Field | Type | Constraint |
+|:------|:------|:-----|:-----------|
+| users | id | varchar(36) | PK |
+| users | username | varchar(36) | Unique |
+| users | email | varchar(100) | Unique |
+| users | hashed_password | varchar(255) | |
+| matches | id | varchar(36) | PK |
+| matches | player1_id, player2_id | varchar(36) | FK → users.id |
+| matches | player3_id, player4_id | varchar(36) | FK → users.id, nullable |
+| matches | winner_id | varchar(36) | FK → users.id |
+| achievements | id | varchar(36) | PK |
+| achievements | name | varchar(100) | Unique |
+| user_achievements | id | varchar(36) | PK |
+| user_achievements | user_id | varchar(36) | FK → users.id |
+| user_achievements | achievement_id | varchar(36) | FK → achievements.id |
 
 ---
 
