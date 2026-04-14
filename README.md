@@ -2,9 +2,10 @@
 
 # ft_transcendence
 
-## Video Showcase
+## Video Showcase 
+_click on the gif to be redirected to youtube for the full preview_
 
-![Video Showcase](preview.gif)
+[![Video Showcase](preview.gif)](https://www.youtube.com/watch?v=KtzGmRg9nGo)
 _It's actually a lot smoother; the GIF quality is just low here._
 
 
