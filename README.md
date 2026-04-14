@@ -2,6 +2,12 @@
 
 # ft_transcendence
 
+## Video Showcase
+
+![Video Showcase](preview.gif)
+_It's actually a lot smoother; the GIF quality is just low here._
+
+
 ## Description
 
 **ft_transcendence** is the final project of the 42 common core.
